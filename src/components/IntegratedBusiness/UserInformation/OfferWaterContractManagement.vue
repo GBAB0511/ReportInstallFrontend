@@ -1,0 +1,677 @@
+
+<template>
+  <div class="OfferWaterContractManagement">
+    <div class="toolbar">
+      <div class="bread-contain" v-if="showContractManagementButton">
+        <div class="bread-contain-right">
+          <el-button size="mini" type="primary" @click="newContract()">创建电子合同</el-button>
+        </div>
+      </div> 
+      <el-form :model="tableQuery" class="demo-form-inline" :inline="true"  label-width="80px"  size="mini" :rules="rules" ref="form">
+        <el-form-item label="合同类型：" >
+          <el-select v-model="tableQuery.contractType" placeholder="请选择" clearable>
+            <el-option v-for="(item,index) in dictionaryData.CONTRACT_TYPE" :key="index" :label="item.name" :value="item.value"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="合同状态：" >
+          <el-select v-model="tableQuery.contractStatus" placeholder="请选择" clearable>
+            <el-option v-for="(item,index) in dictionaryData.CONTRACT_STATUS" :key="index" :label="item.name" :value="item.value"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="模糊检索：" class="width-250">
+          <el-tooltip class="item" effect="dark" content="客户名称、证件号码、用户编号" placement="top">
+            <el-input oninput ="value=value.replace(/\ +/g,'').replace(/[\r\n]/g,'')" clearable v-model="tableQuery.fuzzyQuery" placeholder="客户名称、证件号码、用户编号" @keydown.enter.native="demand"></el-input>
+          </el-tooltip>
+        </el-form-item>
+        <el-button class="searchBtn el-button--mini"  @click="search" icon="el-icon-search"></el-button>
+      </el-form>
+    </div>
+
+    <div class="kl-table" :style="{height: maxHeight + 'px'}">
+      <el-table v-if="tableShow" highlight-current-row :max-height="maxHeight" stripe border :data="tableData.list">
+        <el-table-column type="index" label="序号" width="50" fixed="left" :index="indexMethod">
+        </el-table-column>
+        <el-table-column prop="name" min-width="120" label="客户名称" show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column prop="certNo" min-width="180" label="证件号码" show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column prop="userNo" min-width="180" label="用户编号" show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column prop="contractNo" min-width="150" label="合同编号" show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column prop="contractTypeName" min-width="120" label="合同类型" show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column prop="contractStatusName" min-width="110" label="合同状态" show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column prop="comments" min-width="110" label="备注" show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column prop="createTime" min-width="180" label="创建时间" show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column prop="createName" min-width="110" label="创建人" show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column label="操作" fixed="right" width="200">
+          <template slot-scope="scope">
+            <el-upload
+              v-if="scope.row.contractStatus && scope.row.contractStatus =='7'"
+              action="/"
+              :http-request="(file) => {
+                return uploadAttachmentRow(file, scope.row);
+              }"
+              style="display:inline-block;margin-right: 10px;"
+              :show-file-list="false"
+            >
+            </el-upload>
+            <el-button type="text" @click.stop="priview(scope.row)">预览</el-button>
+            <!-- <el-button type="text" v-if="scope.row.contractFileAddr && scope.row.contractFileAddr!==''" @click.stop="priview(scope.row)">预览</el-button> -->
+            <el-button type="text" v-if="scope.row.contractStatus == '1' || scope.row.contractStatus == '2'" @click.stop="cancel(scope.row)">作废</el-button>
+            <!-- <el-button type="text" v-if="scope.row.contractStatus && scope.row.contractStatus == '1'" @click.stop="urgeSign(scope.row)">发送催签消息</el-button> -->
+            <el-button type="text" v-if="scope.row.contractStatus && scope.row.contractStatus == '7'" @click.stop="finishSign(scope.row)">签约完成</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+    <!-- 分页 -->
+    <div class="block">
+      <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange" :current-page="tableQuery.page" :page-sizes="[20, 100, 500, 1000]" :page-size="tableQuery.pageCount" layout="total, sizes, prev, pager, next, jumper" :total="tableData.total"></el-pagination>
+    </div>
+
+    <el-dialog :visible.sync="templateShow" append-to-body style="width:50%;margin-left:22%" title="请选择合同模板">
+      <el-form>
+        <el-form-item label="合同模板：">
+          <el-select v-model="tableQueryDia.contractTemplate" placeholder="">
+            <el-option v-for="(item,index) in contractTemplateData" :key="index" :label="item.contractName" :value="item.ecCategoryId"></el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer" ref="ruleForm">
+        <el-button type="primary" size="mini" plain @click="createContract('electron')">确 定</el-button>
+        <el-button type="info" size="mini" plain @click="closeTemplateShow">取 消</el-button>
+      </div>
+    </el-dialog>
+    <el-dialog title="查看附件" :visible.sync="viewAttachmentShow" :append-to-body="true" :close-on-click-modal="false" class="button-dialog" @close="closeAttachDialog">
+      <attachment-view-info
+        v-if="viewAttachmentShow"
+        :receiptAccessory="receiptAccessory"
+        busicode="ReceiptAccessoryList"
+      ></attachment-view-info>
+      <div slot="footer" class="dialog-footer" ref="ruleForm">
+        <el-button type="info" size="mini" plain @click="closeAttachDialog">关 闭</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script>
+import uploadFile from "@/components/uploadPic"; //上传附件
+import AttachmentViewInfo from '@/components/IntegratedBusiness/UserInformation/AttachmentViewInfo.vue';
+export default {
+  name: "OfferWaterContractManagement",
+  components:{
+    uploadFile,
+    AttachmentViewInfo,
+  },
+  props: ['OfferWaterContractParams','showContractManagementButton'],
+  data() {
+    return {
+      eleContract: false,
+      // editType:0,
+      dictionaryData: {},
+      rules: {
+        // contractNo: [{ required: true, message: "合同编号不能为空", trigger: 'blur' }],
+        // ctmName: [{ required: true, message: "客户名称不能为空", trigger: 'blur' }],
+        // certNo: [{ required: true, message: "证件类型不能为空", trigger: 'blur' }],
+        // certType: [{ required: true, message: "客户类型不能为空", trigger: 'change' }],
+      },
+      diaRules:{
+        contractType: [{ required: true, message: "合同类型不能为空", trigger: ['blur', 'change'] }]
+      },
+      tableQuery: {
+        contractType: "",
+        contractStatus: "",
+        fuzzyQuery: "",
+        page: 1,
+        pageCount: 20,
+      },
+      tableShow: false,
+      maxHeight: 0,
+      // 列表数据
+      tableData: {},
+      userData: {},
+      // 弹窗
+      contractVisible: false,
+      contractTitle: "",
+      visibleType: "",
+      dialogForm: {
+
+      },
+      elecDisabled: false,
+      contractStatusData: [],
+      templateShow: false,//合同模板弹出框
+      tableQueryDia: {
+        contractTemplate: ""
+      },
+      contractTemplateData: [],//合同模板数据
+      viewAttachmentShow: false, // 查看附件弹出框
+    }
+  },
+  mounted() {
+    if (this.OfferWaterContractParams.meterList.length >= 1) {
+      this.tableQuery.userNo = this.OfferWaterContractParams.meterList[0].userInfo.userNo
+      this.tableQuery.certNo = this.OfferWaterContractParams.meterList[0].userInfo.certNo
+      this.tableQuery.ctmName = this.OfferWaterContractParams.meterList[0].userInfo.ctmName
+      this.tableQuery.ctmAddr = this.OfferWaterContractParams.meterList[0].userInfo.ctmAddr
+    }
+    console.log(this.OfferWaterContractParams);
+    this.getConfig()
+    this.getDictionarySelect()
+    this.init()
+    this.common.changeTable(this, ".OfferWaterContractManagement", [
+      ".OfferWaterContractManagement .toolbar",
+      ".OfferWaterContractManagement .block",
+    ]);
+  },
+  methods: {
+    // 查询
+    search() {
+      this.tableQuery.page = 1;
+      this.init();
+    },
+    init() {
+      let params = {
+        busicode: "NewContractManageList",
+        data: this.tableQuery
+      };
+      params.data.projectId = this.OfferWaterContractParams.id;
+      this.$api.fetch({
+        params: params,//参数
+
+      }).then(res => {
+        this.tableData = res
+        
+      })
+    },
+    closeTemplateShow(){
+      this.templateShow = false;
+    },
+    getArrDifference(arr1, arr2){
+      return arr1.concat(arr2).filter(function(value, i, arr){
+        return arr.indexOf(value) === arr.lastIndexOf(value);
+      })
+    },
+    // 数据字典
+    getDictionarySelect() {
+      var dictionaryDataParams = {
+        busicode: "DictionarySelect",
+        data: "CONTRACT_STATUS,CONTRACT_TYPE"
+      };
+      this.$api.fetch({ params: dictionaryDataParams }).then(res => {
+        console.log(res)
+        this.$set(this, "dictionaryData", res);
+        if (this.dictionaryData.CONTRACT_TYPE.length > 0) {
+          let tem = this.dictionaryData.CONTRACT_TYPE.filter(item => {
+            return item.value != "0" && item.value != "1";//要把营收中重复的给过滤掉
+          });
+          this.dictionaryData.CONTRACT_TYPE = tem
+        }
+      }).catch(res => {
+        this.$set(this, "dictionaryData", []);
+      });
+    },
+    inputMe(e){
+      let str=e.replace(/\ +/g,"")
+      str=str.replace(/[\r\n]/g,"")
+      return str;
+    },
+    newContract(){
+      this.templateShow = true;
+      var params = {
+        busicode: "ContractConfigList",
+        data: {
+          "contractType": "2",//默认查询电子供水合同
+        }
+      };
+      this.$api.fetch({ params: params }).then(res => {
+        this.$set(this, "contractTemplateData", res);
+      }).catch(res => {
+        this.$set(this, "contractTemplateData", []);
+      });
+    },
+    createContract(type){
+      if (type == "electron") { // 电子合同
+        // if (this.userData.contractStatus !== '0' && this.userData.contractStatus !== '6' && this.userData.contractStatus !== '3') {
+        //   this.$message.error(this.userData.name + "已签电子合同，如需重签请先作废旧合同！")
+        //   return
+        // }else{
+          
+        // }
+        this.$confirm('是否确认签署电子合同？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          // let tem = JSON.parse(JSON.stringify(this.userData))
+          // tem.contractType = "0"
+          // tem.contractTypeName = "电子供水合同"
+          console.log(this.OfferWaterContractParams.meterList);
+          let temList = []
+          if (this.tableData.list.length == 0) {
+            this.OfferWaterContractParams.meterList.forEach(item => {
+              let tem = {
+                contractType: "2",
+                contractNo: item.userInfo.contractNo,
+                userNo: item.userInfo.userNo,
+                name: item.userInfo.ctmName,
+                // contractTypeName: item.contractNo,
+                certNo: item.userInfo.certNo,
+                mobile: item.userInfo.mobile,
+                ctmAddr: item.userInfo.ctmAddr,
+                projectId: this.OfferWaterContractParams.id,
+                billNo: this.OfferWaterContractParams.billNo,
+              }
+              temList.push(tem)
+            })
+          }else{
+            this.OfferWaterContractParams.meterList.forEach(item => {
+              if (this.tableData.list.every(item2 => item2.userNo !== item.userInfo.userNo)) {
+                let tem = {
+                  contractType: "2",
+                  contractNo: item.userInfo.contractNo,
+                  userNo: item.userInfo.userNo,
+                  name: item.userInfo.ctmName,
+                  // contractTypeName: item.contractNo,
+                  certNo: item.userInfo.certNo,
+                  mobile: item.userInfo.mobile,
+                  ctmAddr: item.userInfo.ctmAddr,
+                  projectId: this.OfferWaterContractParams.id,
+                  billNo: this.OfferWaterContractParams.billNo,
+                }
+                temList.push(tem)
+              }else{
+                let filterList = this.tableData.list.filter(item3 => {
+                  return item.userInfo.userNo === item3.userNo
+                })
+                if (filterList.every(item2 => item2.contractStatus === "3" || item2.contractStatus === '6')) {
+                  let tem = {
+                    contractType: "2",
+                    contractNo: item.userInfo.contractNo,
+                    userNo: item.userInfo.userNo,
+                    name: item.userInfo.ctmName,
+                    // contractTypeName: item.contractNo,
+                    certNo: item.userInfo.certNo,
+                    mobile: item.userInfo.mobile,
+                    ctmAddr: item.userInfo.ctmAddr,
+                    projectId: this.OfferWaterContractParams.id,
+                    billNo: this.OfferWaterContractParams.billNo,
+                  }
+                  temList.push(tem)
+                }
+              }
+            })
+          }
+          var params = {
+            busicode: "NewContractManageAdd",
+            data: {
+              contractType: "2",
+              contractManageBeanList: temList,
+              ecCategoryId: this.tableQueryDia.contractTemplate
+            },
+          };
+          this.$api.fetch({
+            params: params //参数
+          })
+          .then(res => {
+            this.$message.success(res);
+            this.init()
+          });
+        }).catch(() => {
+        });
+      }else if(type == "ordinary"){ // 普通合同
+        if (this.OfferWaterContractParams.meterList.length > 1) {
+          this.$message.error("多水表签署合同请立户后在用户管理签署")
+        }else{
+          console.log(this.tableData.list.every((item) => (item.contractStatus != '1' && item.contractStatus != '2' && item.contractStatus != '5' && item.contractStatus != '7' )));
+          if (this.tableData.list.every((item) => (item.contractStatus != '1' && item.contractStatus != '2' && item.contractStatus != '5' && item.contractStatus != '7' ))) {//未签署或者作废
+            this.$confirm('是否确认签署普通合同？', '提示', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(() => {
+              this.contractVisible = true
+              this.visibleType = "ordinary"
+              this.contractTitle = "创建普通合同"
+              this.$set(this, 'dialogForm', {})
+              this.dialogForm.userNo = this.OfferWaterContractParams.meterList[0].userInfo.userNo
+              this.initContract()
+            }).catch(() => {
+            });
+          }else{
+            this.$message.error(this.tableQuery.ctmName + "已签合同，如需重签请先作废旧合同！")
+            return
+          }
+        }
+
+      }
+    },
+    priview(row){
+      // console.log(row)
+      // if (row.contractType == "2") {
+      //   let params = {
+      //     busicode: "EcContractPreview",
+      //     data: {
+      //       userNo: row.userNo,
+      //       projectId: this.OfferWaterContractParams.id,
+      //       contractNo: row.contractNo,
+      //       contractType: row.contractType,
+      //       fileId: row.fileId,
+      //     },
+      //     token: sessionStorage.getItem("token"),
+      //     sysType: '002',
+      //   };
+      //   window.open( this.common.getExportExcelIp() + window.location.pathname + 'exportPdf.api?json=' + encodeURIComponent(JSON.stringify(params)))
+      // }else{
+      //   window.open(row.contractFileAddr)
+      // }
+      // 要循环，循环打开新的浏览器标签页，先调用接口获得相应的数据
+      let tempId;
+      if(row.fileId){
+        //判断要区分是电子供水合同（有来自契约所的附件）还是普通供水合同，有就调用这个传值
+        let params = {
+          busicode: "newEcContractPreview",
+          data: {
+            "contractNo": row.contractNo,
+            "contractType": row.contractType,
+            "fileId": row.fileId,
+          },
+          token: sessionStorage.getItem("token"),
+          sysType: '002',
+        }
+        window.open( this.common.getExportExcelIp() + '/project/previewPdf.api?json=' + encodeURIComponent(JSON.stringify(params)))
+      }else{
+        if(row.contractType == 2 || row.contractType == 4){
+          // 电子合同是直接弹出
+          if(row.id){
+            tempId = row.projectId;
+          }
+          if(tempId){
+            let params = {
+              busicode: "ReceiptAccessoryList",
+                data: {
+                receiptType: "contract_template",
+                receiptId: tempId
+              }
+            };
+            this.$api.fetch({
+              params: params //参数
+            }).then(res => {
+              // 可能签约了里面没有附件，记得判空,获得相应的链接地址后在进行打开
+              if(res.length == 0){
+                this.$message({
+                  type: "warning",
+                  message: "暂无附件"
+                });
+              } else{
+                res.forEach(item=>{
+                  window.open(item.accessoryMetadata.accessoryPath);
+                })
+              }
+            });
+          }
+        }else{
+          if(row.id){
+            // 打开弹出框显示附件
+            this.receiptAccessory = {
+              receiptType: "pj_info_new",
+              receiptId: row.id
+            }
+            this.$nextTick(() => {
+              this.viewAttachmentShow = true;
+            })
+          }else{
+            this.$message({
+              type: "warning",
+              message: "暂无附件"
+            });
+          }
+        }
+      }
+    },
+    closeAttachDialog(){
+      this.viewAttachmentShow = false;
+    },
+    cancel(row){
+      this.$confirm('是否确认作废该合同？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        let params = {
+          busicode: "ContractManageDelete",
+          data: row
+        };
+        params.data.projectId = this.OfferWaterContractParams.id
+        this.$api.fetch({params}).then(res => {
+          this.$message({
+            type: 'success',
+            message: '作废成功!'
+          });
+          this.init()
+        })
+      }).catch(() => {
+      });
+    },
+    // 催签
+    urgeSign(row){
+      let params = {
+        busicode: "ContractNotify",
+        data: {
+          userNo: row.userNo,
+          contractNo: row.contractNo,
+          contractType: row.contractType,
+          contractStatus: row.contractStatus,
+          projectId: this.OfferWaterContractParams.id,
+        }
+      };
+      this.$api.fetch({params}).then(res => {
+        this.$message({
+          type: 'success',
+          message: '催签成功!'
+        });
+        this.init()
+      })
+    },
+    // 签约完成
+    finishSign(row){
+      this.$confirm('是否确认签约完成？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        let params = {
+          busicode: "ContractComplete",
+          data: {
+            userNo: row.userNo,
+            contractNo: row.contractNo,
+            contractType: row.contractType,
+            contractStatus: row.contractStatus,
+            projectId: this.OfferWaterContractParams.id
+          }
+        };
+        this.$api.fetch({params}).then(res => {
+          this.$message({
+            type: 'success',
+            message: '签约成功!'
+          });
+          this.init()
+        })
+      }).catch(() => {
+      });
+    },
+    getConfig() {
+      let params = {
+        busicode: "ConfigList",
+        data: {
+          status: '1',
+          searchContent: 'ec_pe_categoryId',
+        }
+      };
+      this.$api.fetch({params}).then(res => {
+        if (res.list.length && res.list[0].configValue) {//为01则启用
+          this.eleContract = true;
+        }
+      })
+    },
+    initContract(){
+      // let params = {
+      //   busicode: "ContractGetUserInfo",
+      //   data: {
+      //     userNo: this.dialogForm.userNo,
+      //     projectId: this.OfferWaterContractParams.id,
+      //   }
+      // };
+      // this.$api.fetch({params}).then(res => {
+      //   this.$set(this, 'dialogForm', res)
+      //   // this.dialogForm = {
+      //   //   contractType: res.contractType,
+      //   //   contractNo: res.contractNo,
+      //   //   userNo: res.userNo,
+      //   //   name: res.name,
+      //   //   contractTypeName: res.contractTypeName,
+      //   //   certNo: res.certNo,
+      //   //   mobile: res.mobile,
+      //   // }
+      //   console.log(this.dialogForm);
+      // })
+      this.dialogForm = {
+        contractType: "3",
+        contractNo: this.OfferWaterContractParams.meterList[0].userInfo.contractNo,
+        userNo: this.OfferWaterContractParams.meterList[0].userInfo.userNo,
+        name: this.OfferWaterContractParams.meterList[0].userInfo.ctmName,
+        // contractTypeName: this.OfferWaterContractParams.meterList[0].userInfo.contractNo,
+        certNo: this.OfferWaterContractParams.meterList[0].userInfo.certNo,
+        mobile: this.OfferWaterContractParams.meterList[0].userInfo.mobile,
+        ctmAddr: this.OfferWaterContractParams.meterList[0].userInfo.ctmAddr,
+      }
+    },
+    //上传附件
+    uploadAttachment(file, fileList) {
+      let _this = this;
+      var params = {
+        busicode: "ContractAccessoryUpload",
+        type: "upload",
+        data: {
+          file: file.file,
+          projectId: this.OfferWaterContractParams.id,
+        },
+      };
+      this.$api.fetch({
+        params: params //参数
+      })
+      .then(res => {
+        _this.$message.success("上传附件成功！");
+        this.$set(this.dialogForm, 'contractFileName', res.contractFileName)
+        this.$set(this.dialogForm, 'contractFileAddr', res.contractFileAddr)
+      });
+    },
+    //上传附件
+    uploadAttachmentRow(row){
+      let _this = this;
+      var params = {
+        busicode: "ContractAccessoryUpload",
+        type: "upload",
+        data: {
+          file: file.file,
+          userNo: row.userNo,
+          contractNo: row.contractNo,
+          contractType: row.contractType,
+          projectId: this.OfferWaterContractParams.id,
+        },
+      };
+      this.$api.fetch({
+        params: params //参数
+      })
+      .then(res => {
+        _this.$message.success("上传附件成功！");
+        this.init()
+      });
+    },
+    deleteFile(){
+      this.dialogForm.contractFileName = ""
+      this.dialogForm.contractFileAddr = ""
+    },
+    priviewContract(){
+      let params = {
+        busicode: "ContractPreview",
+        data: this.dialogForm,
+        token: sessionStorage.getItem("token"),
+        sysType: '002',
+      }
+      params.data.projectId = this.OfferWaterContractParams.id
+      window.open( this.common.getExportExcelIp() + '/exportWord.api?json=' + encodeURIComponent(JSON.stringify(params)))
+    },
+    save(){
+      this.$refs.dialogForm.validate((valid) => {
+        if (valid) {
+          var params = {
+            busicode: "ContractManageAdd",
+            data: {
+              contractType: "3",
+              contractManageBeanList: [this.dialogForm]
+            },
+          };
+          params.data.contractManageBeanList[0].projectId = this.OfferWaterContractParams.id
+          params.data.contractManageBeanList[0].billNo = this.OfferWaterContractParams.billNo
+          this.$api.fetch({
+            params: params //参数
+          })
+          .then(res => {
+            this.$message.success(res);
+            this.contractVisible = false
+            this.init()
+          });
+        } else {
+
+        }
+      })
+    },
+    closeDialog(){
+      this.contractVisible = false
+    },
+    //分页
+    handleSizeChange(val) {
+      //显示多少数据一页
+      this.tableQuery.pageCount = val
+      this.tableQuery.page = 1
+      this.init();
+    },
+    handleCurrentChange(val) {
+      //显示多少页码
+      this.tableQuery.page = val
+      this.init();
+    },
+    indexMethod(index) {
+      //获取表格序号
+      return (this.tableQuery.page - 1) * this.tableQuery.pageCount + (index + 1);
+    },
+  },
+  watch: {
+    maxHeight() {
+      this.tableShow = false;
+      this.$nextTick(() => {
+        this.tableShow = true;
+      });
+    },
+  }
+
+}
+</script>
+<style lang="scss">
+.OfferWaterContractManagement {
+  width: 100%;
+  height: 100%;
+}
+.el-dialog__body{
+  padding: 10px 20px;
+}
+.formBill-Two{
+  height: 300px;
+}
+</style>

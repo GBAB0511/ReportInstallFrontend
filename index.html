@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <link rel="icon" href="./static/favicon.ico"/>
+    <meta charset="utf-8" />
+    <meta name="renderer" content="webkit" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta name="google" content="notranslate" />
+    <meta   http-equiv="Expires"   CONTENT="0">
+    <meta   http-equiv="Cache-Control"   CONTENT="no-cache">
+    <meta   http-equiv="Pragma"   CONTENT="no-cache">
+    <!-- <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> -->
+    <link href="static/approval/css/editform.css" rel="stylesheet" />
+    <link href="static/approval/css/fontello.css" rel="stylesheet" />
+    <link href="static/approval/css/appvoralCSS.css" rel="stylesheet" />
+    <link href="static/addone/artdialog/ui-dialog.css" rel="stylesheet" />
+    <link href="static/addone/staffselector/selector.css" rel="stylesheet" />
+    <link href="static/addone/tree/mytree.css" rel="stylesheet" />
+    <link href="static/addone/staffselector/selector.css" rel="stylesheet" />
+    <script type="text/javascript" src="static/js/jquery.js"></script>
+    <script type="text/javascript" src="static/js/jquery.form.js"></script>
+    <script
+      type="text/javascript"
+      src="static/addone/artdialog/dialog-min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="static/addone/artdialog/dialog-plus.js"
+    ></script>
+    <script type="text/javascript" src="static/addone/tree/mytree.js"></script>
+    <script
+      type="text/javascript"
+      src="static/addone/staffselector/selector.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="static/js/approvalneedmethod.js"
+    ></script>
+    <title>工程报装系统</title>
+    <style type="text/css">
+      /* 公共样式引入 */
+      html {
+        font-size: 16px !important;
+      }
+      .el-table th.gutter {
+        display: table-cell !important;
+      }
+      /*水表*/
+      .water-meter .editBox .el-dialog__body {
+        padding: 0 30px;
+        overflow: visible !important;
+      }
+      /*权限树表格样式*/
+      .main-content .el-dialog--center .el-dialog__body .el-checkbox {
+        width: initial;
+      }
+      .el-checkbox__input.is-checked + .el-checkbox__label {
+        margin-right: 10px;
+      }
+      .TwoModel .el-dialog {
+        margin: 0 auto;
+        width: 80%;
+        height: 94%;
+        margin-top: 38px !important;
+      }
+      .TwoModel .el-dialog .el-dialog__body {
+        height: calc(100% - 55px);
+        overflow-y: auto;
+      }
+      .TwoModel .el-dialog .el-dialog__body .ctmInfo .formBill {
+        height: 100%;
+        overflow-y: auto;
+      }
+      .scorllModel .el-dialog {
+        margin: 0 auto;
+        width: 80%;
+        /* height: 94%; */
+        margin-top: 38px !important;
+      }
+      .scorllModel .el-dialog .el-dialog__body {
+        height: calc(100% - 55px);
+        /* overflow-y: auto; */
+      }
+      .scorllModel .el-dialog .el-dialog__body .ctmInfo .formBill {
+        height: 100%;
+        /* overflow-y: auto; */
+      }
+      .StepCollapse {
+        z-index: 1122;
+        position: absolute;
+        right: 153px;
+        top: 50%;
+        margin-bottom: 25px;
+        cursor: pointer;
+        background-color: #000;
+        color: #f3f3f3;
+        height: 32px;
+        line-height: 32px;
+        font-size: 12px;
+        -webkit-border-top-right-radius: 3px;
+        -webkit-border-bottom-right-radius: 3px;
+        -moz-border-radius-topright: 3px;
+        -moz-border-radius-bottomright: 3px;
+        border-top-right-radius: 3px;
+        border-bottom-right-radius: 3px;
+        filter: alpha(opacity=25);
+        -moz-opacity: 0.25;
+        opacity: 0.25;
+      }
+      .stepsCompar {
+        width: 150px;
+        height: 100%;
+        display: inline-block;
+        border-left: 10px solid #eaf4ff;
+        position: relative;
+      }
+      .stepsTitle {
+        font-size: 16px;
+        margin-left: 10px;
+        font-weight: 700;
+        color: #4593d8;
+        display: inline-block;
+        margin-top: 10px;
+      }
+      .el-step__title {
+        font-size: 14px;
+      }
+      .el-steps {
+        width: calc(100% - 30px);
+        height: calc(100% - 80px) !important;
+        margin-left: 30px;
+      }
+      .line {
+        border-bottom: 1px solid #4593d8;
+        height: 0;
+        font-size: 0;
+        overflow: hidden;
+        margin: 5px 10px;
+      }
+      .bread-contain-right {
+        float: right;
+        width: 50%;
+        text-align: right;
+        line-height: 40px;
+      }
+      #crumbs {
+        float: left;
+        width: 30%;
+        padding-right: 0px;
+      }
+      .bread-contain {
+        width: calc(100% - 10px);
+        height: 40px;
+        zoom: 1;
+        border-bottom: 1px solid #eaf4ff;
+      }
+      body {
+        overflow: hidden;
+        min-width: 1330px;
+        min-height: 640px;
+      }
+      .el-table th.gutter {
+        display: table-cell !important;
+      }
+      .win {
+        height: 400px !important;
+      }
+      .win .container {
+        height: 90% !important;
+      }
+      #modal {
+        z-index: 10000 !important;
+      }
+      .el-date-table td.today {
+        background-color: #f2f6fc;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+    <!--[if lte IE 9]>
+      请升级您的IE浏览器版本至IE10以上版本
+    <![endif]-->
+    <script>
+     if (window.location.search.indexOf("?code=") > -1) {
+      debugger;
+        sessionStorage.removeItem('token');
+        var token = getUrlParam('code');
+        sessionStorage.setItem("token", token);
+      }
+      function getUrlParam(param) {
+        debugger;
+        const url = decodeURIComponent(window.location.search);
+        const paramsStr = url.split('?')[1];
+        if (!paramsStr) {
+          return null;
+        }
+        const paramsArr = paramsStr.split('&');
+        for (const pair of paramsArr) {
+          const [key, value] = pair.split('=');
+          if (key === param) {
+            return value;
+          }
+      }
+        return null;
+      }
+    </script>
+  </body>
+</html>

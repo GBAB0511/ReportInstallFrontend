@@ -1,0 +1,378 @@
+﻿<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script type="text/javascript" src="js/jquery-1.8.3.min.js"></script>
+    <script type="text/javascript" src="js/jquery.media.js"></script>
+    <script type="text/javascript" src="js/gwq.js" charset="gb2312"></script>
+    <script type="text/javascript" src="js/json.js" charset="gb2312"></script>
+    <script src="js/qrcode.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/slider.css" />
+  </head>
+  <object
+    classid="clsid:96BB8ADA-D348-4414-8892-DC79C8818841"
+    id="GWQ"
+    width="0"
+    height="0"
+  ></object>
+  <meta http-equiv="X-UA-Compatible" content="IE=8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=9" />
+  <body>
+    <div class="pay-money">
+      <span class="title">当前应缴费用：</span>
+      <span class="total">0元</span>
+    </div>
+
+    <div class="pay-method" id="page_2">
+      <div class="method-box1">
+        
+        <div class="img-box" align="center">
+          <div id="qrcode"></div>
+        </div>
+        <div class="text-box" align="center">
+          <span class="span_name">微信扫码支付：</span
+          ><span class="span_money">0元</span>
+          <div id="scanTip"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pay-method" id="page_3">
+      <div class="method-box1">
+        <div class="img-box" align="center">
+          <div id="qrcode"></div>
+        </div>
+        <div class="text-box" align="center">正在为您缴费，请稍侯...</div>
+      </div>
+    </div>
+
+    <div class="pay-method" id="page_4">
+      <div class="method-box">
+        <div class="img-box" align="center">
+          <img src="./img/p-01.png" alt="" style="width: 100px;" />
+        </div>
+        <div class="text-box" align="center">支付成功！</div>
+      </div>
+      <button class="out" onClick="GWQ_CancelOperate()">《 退 出</button>
+    </div>
+
+
+
+    <script type="text/javascript">
+      var url2 = window.location.href;
+      // var temp2 = url2.split("?")[1];
+      var pram2 = new URLSearchParams(window.location.search);
+
+      // alert(pram2.get("params"))
+      // 收费按钮传过来的参数对象
+      var sysParams = JSON.parse(pram2.get("params"));
+
+      // sysParams.groupCode = "C021018";
+      $(".pay-money .total").html(sysParams.payMoney + "元");
+      $("#page_2 .text-box .span_money").html(sysParams.payMoney + "元");
+
+  
+      // 存储应缴金额和二维码地址
+      var resURL = {};
+      // 微信状态
+      var resStatus = {
+        data: {
+          payStatus: 0
+        }
+      };
+      // 接口名称（微信支付还是支付宝支付）
+      var busicodeURL = "";
+
+      var qrcode = new QRCode("qrcode");
+      //   qrcode.makeCode('http://baidu.com');
+
+      // function choosePay(busicode) {
+      //   busicodeURL = busicode;
+      //   var params = {
+      //     isPrestore: sysParams.isPrestore,
+      //     groupCode: sysParams.groupCode,
+      //     accountNo: sysParams.accountNo,
+      //     payType: sysParams.payType,
+      //     payMoney: sysParams.payMoney,
+      //     feeType: sysParams.feeType,
+      //     payChannel: sysParams.payChannel
+      //   };
+      //   var url =
+      //     "http://" +
+      //     window.location.host +
+      //     "/apis" +
+      //     busicode ;
+          
+      //   XMLHttpRequestSend("post", url, params);
+      // }
+      //     if(sysParams.payWay==='ali'){
+      //  choosePay('/aliPayWay.htm')
+      // }
+
+      // if(sysParams.payWay==='wechat'){
+      //   choosePay('/weChatPayWay.htm')
+      // }
+      // 获取当前支付状态
+      function getPayStatus() {
+        let statusURL = "";
+        var params = {
+        token:sessionStorage.getItem('token'),
+         busicode:sysParams.payWay === 'wechat'?'WeChatResultQuery':'aliResultQuery',
+          sysType:"002",
+            data:{
+          order: sysParams.order,
+          groupCode: sysParams.groupCode,
+          accountNo: sysParams.accountNo,
+            }
+        };
+        if (sysParams.payWay == "wechat") {
+          // 微信支付（获取微信支付状态）
+          statusURL = "/interface.api";
+           $('#page_4 .img-box > img').attr('src', './img/p-01.png');
+        } else if (sysParams.payWay == "ali") {
+          statusURL = "/interface.api";
+          $('#page_4 .img-box > img').attr('src', './img/p-02.png');
+        }
+        var url =
+          "http://" +
+          window.location.host +
+          "/apis" +
+          statusURL;
+        XMLHttpRequestSend("post", url, params);
+      }
+
+          var payurl = location.search.slice(location.search.indexOf('qrcodeUrl=')+10);
+          if (payurl){
+  
+              var payName =sysParams.payWay === 'wechat'
+                  ? "微信扫码支付："
+                  : "支付宝扫码支付：";
+              // var payMoney = resURL.data.payMoney + "元";
+              // $(".pay-money .total").html(payMoney);
+              $("#page_2 .text-box .span_name").html(payName);
+              // $("#page_2 .text-box .span_money").html(payMoney);
+              
+              console.log(decodeURI(payurl))
+          
+              qrcode.makeCode(decodeURI(payurl));
+              $("#page_1").hide();
+              $("#page_2").show();
+              $("#page_3").hide();
+              $("#page_4").hide();
+            
+              // getPayStatus();
+            }
+
+
+      /**
+       * 原生http请求
+       * @param type get或者post
+       * @param url 后端接口地址
+       * @param params 参数
+       * @constructor
+       */
+      function XMLHttpRequestSend(type, url, params) {
+        // （1） 获取 XMLHttpRequest对象
+        xmlHttp = new XMLHttpRequest();
+        //  (2) 连接服务器
+        xmlHttp.open(type, url);
+        // 设置数据类型
+        xmlHttp.setRequestHeader("Content-type", "application/json");
+        // xmlHttp.setRequestHeader('Accept', 'application/json, text/plain, */*');
+        // （3） 发送数据
+        xmlHttp.send(JSON.stringify(params)); // 请求体数据
+        // （4） 回调函数  success
+        xmlHttp.onload = function(e) {
+          console.log("请求成功");
+          console.log(xmlHttp.status, "请求的URL的相应状态");
+          console.log(xmlHttp.readyState, "请求的结果，一般都是4");
+          if (xmlHttp.status === 200) {
+          if (e.target.responseURL.indexOf("ResultQuery") > -1) {
+              //  获取支付状态返回数据
+              resStatus = JSON.parse(e.target.response);
+              console.log(resStatus);
+              if (resStatus.data.payStatus == 0) {
+                setTimeout(() => {
+                  getPayStatus();
+                }, 3000);
+              }
+              //    else if (resStatus.data.payStatus == 1) {
+              //     $("#page_1").hide();
+              //     $("#page_2").hide();
+              //     $("#page_3").show();
+              //     $("#page_4").hide();
+              //     setTimeout(() => {
+              //         getPayStatus()
+              //     }, 3000);
+              //   }
+              else if (resStatus.data.payStatus == 2) {
+                $("#page_1").hide();
+                $("#page_2").hide();
+                $("#page_3").hide();
+                $("#page_4").show();
+
+                setTimeout(() => {
+                  $(".pay-money span").hide()// 当前应缴费用隐藏
+                  $("#page_1").hide();
+                  $("#page_2").hide();
+                  $("#page_3").hide();
+                  $("#page_4").hide();
+                     // 关闭交互机页面
+
+                  GWQ_CancelOperate()
+    
+                }, 5000);
+              }
+            }
+          } else {
+            console.log(e);
+            // window.history.back(-1);
+          }
+        };
+        xmlHttp.onerror = function(e) {
+          alert("请求失败");
+        };
+      }
+
+      function myBrowser() {
+        var userAgent = navigator.userAgent; //取得浏览器的userAgent字符串
+        console.log(userAgent);
+        var isOpera = userAgent.indexOf("Opera") > -1;
+        if (isOpera) {
+          return "Opera";
+        } //判断是否Opera浏览器
+        else if (userAgent.indexOf("Firefox") > -1) {
+          return "FF";
+        } //判断是否Firefox浏览器
+        else if (userAgent.indexOf("Edge") > -1) {
+          return "Edge";
+        } //判断是否Safari浏览器
+        else if (userAgent.indexOf("Chrome") > -1) {
+          return "Chrome";
+        } else if (userAgent.indexOf("Safari") > -1) {
+          return "Safari";
+        } else {
+          return "IE";
+        } //判断是否IE浏览器
+      }
+      var webSocket;
+      if (myBrowser() != "IE") {
+        webSocket = new WebSocket("ws://localhost:1919");
+
+        webSocket.onerror = function(event) {
+          // alert("连接错误");
+          // onError(event);
+        };
+
+        webSocket.onopen = function(event) {
+          //alert("open"+event.data);
+          //console.log(event);
+        };
+
+        webSocket.onclose = function(event) {
+          // alert("服务不存在或者被关闭");
+          //onClose(event);
+        };
+
+        webSocket.onmessage = function(event) {
+          // onMessage(event);
+        };
+        
+        
+      }
+    </script>
+  </body>
+</html>
+<style>
+  #qrcode img {
+    width: 80%;
+  }
+  body {
+    background: linear-gradient(to right, #30cfef, #3097f5);
+  }
+  .pay-money {
+    width: 100%;
+    margin-top: 100px;
+    box-sizing: border-box;
+    /* text-align: center; */
+  }
+  .pay-money .title {
+    color: white;
+    font-size: 20px;
+  }
+  .pay-money .total {
+    color: #efe247;
+    font-size: 20px;
+  }
+  .pay-method {
+    width: 70%;
+    height: 100px;
+    /* background-color: pink; */
+    margin: 0 auto;
+    text-align: center;
+  }
+  .pay-method .method-box {
+    display: inline-block;
+    width: 40%;
+    height: 400px;
+    background-color: white;
+    margin: 0 20px;
+    border-radius: 10px;
+    position: relative;
+  }
+  .pay-method .method-box1 {
+    display: inline-block;
+       padding: 40px 0;
+    background-color: white;
+    margin: 0 20px;
+    border-radius: 10px;
+    position: relative;
+  }
+ 
+  .pay-method .method-box1 .text-box {
+    color: black;
+    padding: 0px 10px;
+    margin: 0 auto;
+    font-size: 18px;
+  }
+  .pay-method .method-box1 .text-box .span_name {
+    color: black;
+    font-size: 18px;
+  }
+  .pay-method .method-box1 .text-box .span_money {
+    color: red;
+    font-size: 22px;
+  }
+  #page_1 {
+    display: block;
+  }
+  /* #page_2 {
+    display: none;
+  } */
+  #page_3 {
+    display: none;
+  }
+  #page_4 {
+    height: 400px;
+    position: relative;
+    display: none;
+  }
+  #page_4 .out {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    background-color: #30a3f4;
+    border: none;
+    border-radius: 5px;
+    font-size: 20px;
+    /* color: #3097f5; */
+    color: white;
+    height: 40px;
+    width: 100px;
+    font-weight: bold;
+  }
+  #page_4 .img-box{
+    margin-top: 110px;
+  }
+</style>

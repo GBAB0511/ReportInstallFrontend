@@ -1,0 +1,236 @@
+
+/* ********************************************组织树 */
+
+#tree{
+
+}
+#tree .el-input__icon{
+  width: 45px;
+}
+#tree .el-input__icon:before{
+  color:#2B7BCC ;
+  font-size: 18px;
+  font-weight: bold;
+}
+#tree .el-input--suffix .el-input__inner{
+  color: #B4B4B4;
+  border-radius: 20px;
+  border: none;
+  background: #F2F4F5;
+}
+#tree {
+  height: 100%;
+  border-right: 1px solid #EAEBEC;
+}
+
+#tree .search {
+  padding: 20px 10px;
+  height: 80px;
+  border-bottom: 1px solid #EAEBEC;
+}
+
+#tree .tree {
+  height: calc(100% - 130px);
+  overflow-x: auto;
+}
+/*/  树的连接线    */
+#tree .el-tree-node{
+  position: relative;
+  padding-left: 0px;
+}
+#tree .el-tree-node__children{
+  padding-left: 16px;
+}
+#tree .el-tree-node :last-child:before {
+  height: 38px;
+}
+#tree .el-tree>.el-tree-node:before{
+  border-left: none;
+}
+#tree .el-tree>.el-tree-node:after{
+  border-top: none;
+}
+#tree .el-tree-node:before,.el-tree-node:after{
+  content: "";
+  left: -4px;
+  position: absolute;
+  right: auto;
+  border-width: 1px;
+}
+#tree .tree :first-child .el-tree-node:before{
+  /*border-left: none;*/
+}
+#tree .el-tree-node:before {
+  border-left: 1px dashed #ACD3FA;
+  bottom: 0px;
+  height: 100%;
+  top: -20px;
+  width: 1px;
+}
+#tree .el-tree-node:after {
+  border-top: 1px dashed #ACD3FA;
+  height: 20px;
+  top: 17px;
+  width: 11px;
+}
+/*控制不要它旋转*/
+#tree .el-tree-node__expand-icon.expanded {
+  transform: rotate(0deg);
+}
+/*未展开的icon*/
+#tree .el-tree-node__content>.el-tree-node__expand-icon:before{
+  content: "\e78a";
+  font-size: 18px;
+  color: transparent;
+  background: url("../icon/close.png")no-repeat center center ;
+}
+/*展开的icon*/
+#tree .el-tree-node__expand-icon.expanded.el-icon-caret-right:before {
+  content: "\e784";
+  font-size: 18px;
+  color: transparent;
+  background: url("../icon/open.png")no-repeat center center ;
+}
+/*叶子节点的color*/
+#tree .el-tree-node__expand-icon{
+  color: #297ACC;
+}
+/*最后节点的color 默认是隐藏的*/
+#tree .el-tree-node__expand-icon.is-leaf{
+  color: #297ACC;
+}
+/*叶子节点的icon*/
+#tree .el-tree-node__expand-icon.is-leaf:before{
+  content:"\e785" ;
+  color: transparent;
+  background: url("../icon/file.png")no-repeat center center ;
+}
+
+#tree .el-tree--highlight-current .el-tree-node.is-current>.el-tree-node__content{
+  background-color: #a4ceff;
+  color: #fff;
+}
+
+/*****************************************弹出框 组织 人员*/
+#dialog .content{
+  height: 100%;
+}
+#dialog .el-dialog{
+  height: 70%;
+  min-height: 400px;
+
+}
+#dialog .el-dialog__body{
+  height: calc(100% - 120px);
+}
+#dialog .content .top{
+  height:50px;
+  display: flex;
+  align-items: center
+}
+#dialog .content .center{
+  height: calc(100% - 50px);
+  border: 1px solid #DEDEDE;
+}
+#dialog .content .center .left{
+  border-right:1px solid #DEDEDE;
+}
+#dialog .content .center .container{
+  border-right:1px solid #ccc;padding: 5px;overflow-y: auto
+}
+#dialog .content .center .right{
+  overflow-y: auto
+}
+#dialog .el-dialog .el-dialog__body {
+  padding: 10px;
+}
+
+#dialog .el-breadcrumb {
+  display: flex;
+  align-items: center;
+}
+
+#dialog .el-checkbox {
+  width: calc(100% - 30px);
+  margin-bottom: 10px;
+}
+
+#dialog .el-radio {
+  width: calc(100% - 30px);
+  margin-bottom: 10px;
+}
+
+#dialog .h100 {
+  height: 100%;
+}
+
+#dialog .rightitem{
+  margin:5px
+}
+#dialog .el-dialog__header{
+  background:#297ACC;
+}
+#dialog .el-dialog__title{
+  color: #fff;
+}
+#dialog .el-dialog__headerbtn .el-dialog__close{
+  color: #fff;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* lzl */
+#dialogModal .el-dialog .el-dialog__header{
+  padding:0.9rem 1.0rem 0.9rem;
+  border-bottom:1px solid #f3f3f4;
+}
+#dialogModal  .el-dialog .el-dialog__body{
+  padding:2.0rem 1.5rem 2.0rem;
+
+}
+/* #dialogModal.dialog  .el-dialog  .el-dialog__body{
+    height:6rem;
+} */
+#dialogModal .el-dialog .el-dialog__body .el-form-item__label{
+  color:#9b9d9f;
+}
+#dialogModal .el-dialog .el-dialog__footer{
+  padding:1.1rem 1.2rem 1.1rem;
+  border-top: 1px solid #f3f3f4;
+  width: 100%;
+  text-align: center;
+}
+#dialogModal .el-dialog .el-dialog__footer .el-button{
+  padding:0.7rem 1.6rem;
+  font-size: 1rem;
+}
+#dialogModal .el-dialog .el-dialog__footer .el-button--primary{
+  color: #FFF;
+  background-color: #0070e4;
+  border-color: #0070e4;
+}
+
+

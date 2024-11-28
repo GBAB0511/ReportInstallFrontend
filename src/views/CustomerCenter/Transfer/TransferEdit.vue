@@ -1,0 +1,994 @@
+<template>
+  <div class="TransferEdit">
+    <el-form class="formBill" size="mini" :disabled="NotDisabled" :inline="true" :model="formData" label-width="130px" ref="ruleForm">
+      <el-form-item style="margin-top:1%" label="用户编号：" class="width450" v-if="searchBtnShow">
+        <el-input oninput ="value=value.replace(/\ +/g,'').replace(/[\r\n]/g,'')"  @input="e => input = inputMe(e)" class="read-only" v-model="searchUserNum" placeholder="请输入户号" @change="initUserNo" clearable @keydown.enter.native="initUserNo">
+          <el-button slot="append" class="searchBtn scanning-btn" @click="initUserNo" icon="el-icon-search"></el-button>
+        </el-input>
+      </el-form-item>
+
+      <!-- 单据信息 -->
+      <billInfo v-if="billStute=='TransferUserUpdate'" ref="billInfo" :editType="0"></billInfo>
+
+      <el-form-item style="margin-top:1%" label="过户日期：" prop="transferDate" :class="{'disable-item': NotDisabled}">
+        <el-date-picker v-if="!NotDisabled" v-model="formData.userTransferInfo.transferDate" type="date" value-format="yyyy-MM-dd" placeholder></el-date-picker>
+        <span v-else>{{formData.userTransferInfo.transferDate}}</span>
+      </el-form-item>
+      <el-form-item style="margin-top:1%" label="过户原因：" class="width-200" prop="transferComments" :class="{'disable-item': NotDisabled}">
+        <span v-if="NotDisabled">{{formData.userTransferInfo.transferComments}}</span>
+        <!-- <el-input oninput ="value=value.replace(/\ +/g,'').replace(/[\r\n]/g,'')"  v-if="NotDisabled" type="textarea" v-model="formData.userTransferInfo.transferComments" placeholder></el-input> -->
+          <!-- <el-select v-if="editType==0" clearable v-model="formData.payWay" disabled  placeholder="" >
+            <el-option v-for="(item,index) in dictionaryData.BPW" :key="index" :label="item.name" :value="item.value"></el-option>
+          </el-select> -->
+          <el-select v-else clearable v-model="formData.userTransferInfo.transferComments"  placeholder="">
+            <el-option v-for="(item,index) in dictionaryData.OTR" :key="index" :label="item.name" :value="item.value"></el-option>
+          </el-select>
+      </el-form-item>
+
+      <!-- 客户信息 -->
+      <custInfo ref="custInfo" :editType="custEditType" :wayOpen="wayOpen" :disableCertNo="disableCertNo" :disableChangeCertNo="disableChangeCertNo"></custInfo>
+      <!-- 账户信息 -->
+      <accountInfo ref="accountInfo" :editType="accountEditType" :wayOpen="wayOpen" :disableAccountNo="disableAccountNo"></accountInfo>
+      <!-- 开票信息 -->
+      <invoiceInfo ref="invoiceInfo" :editType="invoiceEditType" :wayOpen="wayOpen"></invoiceInfo>
+      <!-- 用户信息 -->
+      <userInfo ref="userInfo" :addWay="disabledAddDetail" :editType="userInfoEditType" :wayOpen="wayOpen"></userInfo>
+      <!-- 抄表信息 -->
+      <meterReadInfo ref="meterReadInfo" :editType="meterEditType" :wayOpen="wayOpen"></meterReadInfo>
+      <!-- 水表信息 -->
+      <waterMInfo ref="waterMInfo" :addWay="disabledAddDetail"  :editType="waterMEditType" :wayOpen="wayOpen"></waterMInfo>
+      <!-- 价格信息 -->
+      <priceInfo ref="priceInfo" :editType="priceEditType" :wayOpen="wayOpen"></priceInfo>
+      <legend class="legendColumn">上传附件
+        <i class="fontRight" :class="uploadIcon" @click="showMore('uploadFileShow','uploadIcon')"></i>
+      </legend>
+      <uploadFile ref="uploadFiles" :receiptType="receiptType" v-if="uploadFileShow"></uploadFile>
+      <!--legend class="legendColumn" v-if="changeMattersShow">变更事项</legend>
+      <changeMatters :changeMattersData="changeMattersData" v-if="changeMattersShow"></changeMatters-->
+      <legend class="legendColumn">流程处理</legend>
+      <div id="workflowDiv"></div>
+    </el-form>
+  </div>
+</template>
+<script>
+import billInfo from "@/views/publicModule/infmtnManagement/billInfo";
+import custInfo from "@/views/publicModule/infmtnManagement/custInfo";
+import userInfo from "@/views/publicModule/infmtnManagement/userInfo";
+import meterReadInfo from "@/views/publicModule/infmtnManagement/meterReadInfo";
+import waterMInfo from "@/views/publicModule/infmtnManagement/waterMInfo";
+import accountInfo from "@/views/publicModule/infmtnManagement/accountInfo";
+import invoiceInfo from "@/views/publicModule/infmtnManagement/invoiceInfo";
+import priceInfo from "@/views/publicModule/infmtnManagement/priceInfo";
+import changeMatters from "@/components/changeMatters";
+import uploadFile from '@/components/uploadPic'
+export default {
+  name: "TransferEdit",
+  components: {
+    uploadFile,
+    billInfo,
+    custInfo,
+    userInfo,
+    meterReadInfo,
+    waterMInfo,
+    accountInfo,
+    invoiceInfo,
+    priceInfo,
+    changeMatters
+  },
+  props: ["idCuster", "billStute", "userNo"],
+  data() {
+    return {
+        disabledAddDetail: false,
+         msWaterInfo: {
+          // 用户-水表信息
+            // meterNo: "", //水表编号：
+          // setupMeterAddr: "", //装表地址：
+          // setupMeterLocation: "", //装表位置：
+          // setupMeterLocationName: "", //装表位置：
+          // virtualDesignFormulas: "", //虚拟计算公式：
+          // meterUse: "1", //水表用途：
+          // meterUseName: "", //水表用途：
+          // useWaterObject: "1", //用水对象：
+          // useWaterObjectName: "", //用水对象：
+          virtualDesignFormulas: "", //虚拟计算公式：
+          meterPatternName: "", //水表型式
+          protocolName: "",
+          valvueControlName: "",
+          // setupMeterDate: "", //装表日期：
+          changeMeterDate: "", //换表日期：
+          splitMeterDate: "", //拆表日期：
+          splitMeterWay: "", //拆表类型：
+          splitMeterWayName: "", //拆表类型：
+          fatherMeterNo: "", //总表编号：
+          // meterType: "", //水表类型：
+          mastarNo:"",
+          // meterTypeName: "",//水表类型：
+           // 用户-水表信息
+          factoryNo: "", //水表表身号：
+          meterBore: "", //水表口径：
+          meterFactoryName: "", //水表厂家：
+          meterFactory: "", //水表厂家：
+          transmittalModel:"",//传输方式
+          meterModelName: "", //水表型号：
+          meterModel: "",
+          transCommFee: "", //远传通讯费：
+          commOperatorName: "", //通讯运营商：
+          commFeeStart: "", //通讯费开始日期：
+          commFeeEnd: "", //通讯费结束日期：
+          meterBoreName: "",//水表口径：
+          transmittalModelName: "",//传输方式
+          meterSensorName: "",//传感器
+          meterSensor: "",////传感器
+          maxValue: "",//"满码值"
+          valveControl: "",//是否阀控,
+          protocol:"",//"下行规约"
+          meterPattern: "",//水表型式
+          shelfLife: "",//"使用期限"
+        },
+      uploadFileShow: true,
+      uploadIcon: "el-icon-minus",
+      receiptType: "USER_TRANSFER",
+      searchBtnShow: true,
+      searchUserNum: "",
+      changeMattersShow: true,
+      changeMattersData: {},
+      //打开功能下
+      wayOpen: "Transfer",
+      //是否可以填写
+      custEditType: 1,
+      accountEditType: 1,
+      invoiceEditType: 1,
+      userInfoEditType: 1,
+      meterEditType: 1,
+      waterMEditType: 1,
+      priceEditType: 1,
+      //表单数据
+      formData: {
+        userTransferInfo: {
+          transferDate: this.common.date(),
+          transferComments: '',
+        },
+      },
+      // 价格模块数据
+      priceData: {},
+      //单据信息
+      billData: {},
+      //客户信息
+      custData: {},
+      //用户信息
+      userData: {},
+      //抄表信息
+      meterReadData: {},
+      //水表信息
+      waterMData: {},
+      //账户信息
+      accountData: {},
+      //开票信息
+      invoiceData: {},
+      dictionaryData:{},
+      approveFlag: 0,
+      NotDisabled: false, //是否可编辑
+      accountlist:[],
+      // 是否允许修改客户编号
+      disableCertNo: true,
+      disableChangeCertNo: false,
+      // 是否允许修改账户编号
+      disableAccountNo: false,
+      //存当前客户编号下的所有账户编号
+      ctmAcccountListData:[],
+    };
+  },
+  mounted() {
+    if (this.idCuster && this.idCuster.id != "") {
+      this.searchBtnShow = false;
+      this.changeMattersShow = true;
+      this.init();
+      eventBus.$emit('receiptId', this.idCuster.id)
+    } else {
+      this.searchBtnShow = true;
+      this.changeMattersShow = false;
+      let tempId = this.util.generateUUID()
+      eventBus.$emit('receiptId', tempId)
+      this.formData.userTransferInfo.tempId = tempId
+      this.getHtmlData()
+      if(this.userNo){
+        this.searchUserNum=this.userNo;
+        this.initUserNo();
+      }
+    }
+    this.dictionaryOptions();
+    this.getclientAddrConfig();
+  },
+  methods: {
+    
+inputMe(e){
+        let str=e.replace(/\ +/g,"")
+        str=str.replace(/[\r\n]/g,"")
+        //console.log(str);
+        return str;
+      },
+    // 数据字典
+    dictionaryOptions() {
+      var dictionaryDataParams = {
+        busicode: "DictionarySelect",
+        data: "OTR"
+      };
+      this.$api.fetch({ params: dictionaryDataParams }).then(res => {
+        this.$set(this, "dictionaryData",res);
+      }).catch(res => {
+        this.$set(this, "dictionaryData",[]);
+      });
+},
+    init() {
+      let params = {
+        busicode: "TransferUserQuery",
+        data: { id: this.idCuster.id }
+      };
+      this.$api.fetch({ params })
+        .then(res => {
+            this.formData = res;
+          if(res.userInfo.useTimeLimit===""){
+            res.userInfo.useTimeLimit=null;
+          }
+
+          this.getFormData(res)
+          this.getBillData(res);
+          this.changeMattersData = res.userTransferInfo.changeItems
+          const processState = this.formData.userTransferInfo.processState
+          if (processState == "approval" || processState == "END" || processState == 'CANCEL') {
+            this.NotDisabled = true;
+            this.disabledAddDetail = true
+            this.setEditType(0);
+            this.approveFlag = 1;
+            // console.log(this.disabledAddDetail)
+          }else {
+            this.setEditType(1);
+          }
+          if(processState && processState !== '') {
+
+            this.disableChangeCertNo = true
+            this.disableAccountNo = true
+            this.custEditType = 0
+            this.accountEditType = 0
+            this.invoiceEditType = 0
+          }
+
+          this.getHtmlData()
+          this.$nextTick(() => {
+            this.$refs.custInfo.adminAreaDataByFullName(res.ctmInfo.clientAddr)
+            this.$refs.userInfo.$refs.dynamicForm.adminAreaDataByFullName(this.formData.userInfo.clientContractAddr)
+          });
+        })
+    },
+    setEditType(val){
+      this.custEditType= val
+      this.accountEditType= val
+      this.invoiceEditType= val
+      this.userInfoEditType= val
+      this.meterEditType= val
+      this.waterMEditType= val
+      this.priceEditType= val
+    },
+    getDataLength() {
+      let params = {
+        busicode: "ChargeLackDetail",
+        data: {
+          userNo: this.searchUserNum
+        }
+      };
+      this.$api
+        .fetch({
+          params //参数
+        })
+        .then(res => {
+          if (res.length > 0) {
+            this.$notify({
+              title: "费用未结清提醒",
+              message: "此用户费用未结清！",
+              type: "warning"
+            });
+          }
+        });
+    },
+    // 获取审批流前端代码
+    getHtmlData() {
+      let _this = this;
+      //************启用流程代码************** */
+      _this.common.getProcessShowView(
+        "USER_TRANSFER",
+        "审批流配置:" +
+        _this.formData.userTransferInfo.processName +
+        "(" +
+        _this.formData.userTransferInfo.billNo +
+        ")", // 流程标题,一般是单据类型加单据编号
+        _this.formData.userTransferInfo.id, // 任务id
+        _this.formData.userTransferInfo.processInstanceId, // 流程实例Id，添加时可为空
+        "workflowDiv",
+        _this,
+        (value) => {
+          if (window.location.href.indexOf("HallBusiness") > 0 || window.location.href.indexOf("PendingTrial") > 0 || window.location.href.indexOf("WaterSideIndex") > 0) {
+            // 流程中心模块触发
+            _this.$parent.$parent.closeDialog();
+          } else {
+            // 普通模块触发
+            if (_this.formData.userTransferInfo.processInstanceId && _this.formData.userTransferInfo.processInstanceId !== '' && value == '32'){
+              console.log(1111);
+              _this.clearYearWater();
+            }
+            _this.$parent.closeDialog(); // 提交后回调方法
+          }
+        },
+        this.approveFlag, // 等于0时，先保存后提交 等于1时，直接提交
+        this.billStute
+      );
+    },
+    //根据配置清空用户年用水量
+    clearYearWater(){
+      let params = {
+        busicode: "ClearYearWater",
+        data: {
+          userNo: this.idCuster.userNo
+        }
+      };
+      this.$api
+        .fetch({
+          params //参数
+        })
+        .then(res => {
+          /*if (res.code === 0) {
+            this.$notify({
+              title: "费用未结清提醒",
+              message: "此用户费用未结清！",
+              type: "warning"
+            });
+          }*/
+        });
+    },
+    getBillData(res) {
+      // 单据信息
+      this.billData = {
+        billNo: res.userTransferInfo.billNo, //单据编号
+        billDate: res.userTransferInfo.billDate //单据日期
+      };
+      this.$refs.billInfo.init(this.billData);
+    },
+    getCustData(res) {
+      // 客户信息
+      this.custData = {
+        ctmNo: res.ctmInfo.ctmNo, //客户编号：
+        ctmName: res.ctmInfo.ctmName, //客户名称：
+        certNo: res.ctmInfo.certNo, //客户身份证号：
+        certType: res.ctmInfo.certType, //证件类型：
+        certTypeName: res.ctmInfo.certTypeName, //证件类型：
+        ctmAddr: res.ctmInfo.ctmAddr, //客户地址：
+        clientAddr: res.ctmInfo.clientAddr,
+        clientAddrDetail: res.ctmInfo.clientAddrDetail,
+        ctmType: res.ctmInfo.ctmType, //客户类型：
+        ctmTypeName: res.ctmInfo.ctmTypeName, //客户类型：
+        creditLevel: res.ctmInfo.creditLevel, //信用等级：
+        creditLevelName: res.ctmInfo.creditLevelName, //信用等级：
+        linkMan: res.ctmInfo.linkMan, //联系人：
+        linkTel: res.ctmInfo.linkTel, //固定电话：
+        faxNumber: res.ctmInfo.faxNumber,
+        mobile: res.ctmInfo.mobile, //手机号码：
+        defaultCtmNo: res.userTransferInfo ? res.userTransferInfo.ctmNo : null
+      };
+    },
+    getUserData(res) {
+      // 用户信息
+      let nodeId=res.userInfo.adminArea
+      let cascaderData =this.$refs.userInfo.adminAreaData
+      let msg = this.getCascaderFullValue(cascaderData,nodeId);
+
+      this.userData = {
+        userNo: res.userInfo.userNo, //用户编号
+        lockFlag: res.userInfo.lockFlag, //锁定状态
+        status: res.userInfo.status, //用户状态
+        statusName: res.userInfo.statusName, //用户状态
+        houseCert: res.userInfo.houseCert, //户口簿号
+        comments: res.userInfo.comments, //备注
+        fatherMeterNo: res.userInfo.fatherMeterNo, //用水期限
+
+        reformFlag: res.userInfo.reformFlag, //户表改造标记
+        oldUserNo:res.userInfo.oldUserNo,
+        contractNo: res.userInfo.contractNo, //合同编号
+        contractAddr: res.userInfo.contractAddr, //合同地址
+        contractDate: res.userInfo.contractDate, //合同日期
+        businessAbodeName: res.userInfo.businessAbodeName, //营业所
+        businessAbode: res.userInfo.businessAbode, //营业所
+        adminAreaName: res.userInfo.adminAreaName, //行政区域
+        adminArea: msg, //行政区域
+        businessAreaName: res.userInfo.businessAreaName, //营业区域
+        businessArea: res.userInfo.businessArea, //营业区域
+        tradeClassifyName: res.userInfo.tradeClassifyName, //行业分类
+        tradeClassify: res.userInfo.tradeClassify, //行业分类
+        openDate: res.userInfo.openDate, //立户日期
+        stopDate: res.userInfo.stopDate, //停用日期
+        stopWaterLinkMan: res.userInfo.stopWaterLinkMan,
+        stopWaterLinkMobile: res.userInfo.stopWaterLinkMobile,
+        cancelDate: res.userInfo.cancelDate, //注销日期
+        useTimeLimit: res.userInfo.useTimeLimit, //用水期限
+        setupMeterAddr: res.userInfo.setupMeterAddr, //装表地址：
+        clientContractAddr: res.userInfo.clientContractAddr,
+        clientContractAddrDetail: res.userInfo.clientContractAddrDetail,
+        realEstateNo:res.userInfo.realEstateNo,
+        id:res.userInfo.id,
+        lastReadingNum: res.userInfo.lastReadingNum, //最后抄码
+        userGroupNo: res.userInfo.userGroupNo, //用户组编号
+      };
+    },
+
+    getWaterMData(res) {
+      let valMeter = {
+        meterNo: res.userInfo.meterNo, //水表编号：
+        //setupMeterAddr: res.userInfo.setupMeterAddr, //装表地址：
+        setupMeterLocation: res.userInfo.setupMeterLocation, //装表位置：
+        setupMeterLocationName: res.userInfo.setupMeterLocationName, //装表位置：
+        virtualDesignFormulas: res.userInfo.virtualDesignFormulas, //虚拟计算公式：
+        meterUse: res.userInfo.meterUse, //水表用途：
+        meterUseName: res.userInfo.meterUseName, //水表用途
+        useWaterObject: res.userInfo.useWaterObject, //用水对象：
+        useWaterObjectName: res.userInfo.useWaterObjectName, //用水对象：
+        meterType: res.userInfo.meterType, //水表类型：
+        meterTypeName: res.userInfo.meterTypeName, //水表类型：
+        setupMeterDate: res.userInfo.setupMeterDate, //装装日期：
+        changeMeterDate: res.userInfo.changeMeterDate, //换表日期：
+        splitMeterDate: res.userInfo.splitMeterDate, //拆表日期：
+        splitMeterWay: res.userInfo.splitMeterWay, //拆表类型：
+        splitMeterWayName: res.userInfo.splitMeterWayName, //拆表类型：
+        fatherMeterNo: res.userInfo.fatherMeterNo //总表编号
+      };
+      let key = "userInfo";
+      this.waterMData[key] = valMeter;
+    },
+
+    getWMeterData(res) {
+      // 水表信息
+      let valMeter = {
+         meterModel: res.msInfo.meterModel, //水表型号
+        meterTypeName: res.msInfo.meterTypeName, //水表类型
+        factoryNo: res.msInfo.factoryNo,
+        meterBoreName: res.msInfo.meterBoreName, //水表口径
+        meterBore: res.msInfo.meterBore, //水表口径
+        meterFactoryName: res.msInfo.meterFactoryName, //水表厂家
+        meterFactory: res.msInfo.meterFactory, //水表厂家
+        transmittalModel: res.msInfo.transmittalModel,//传输方式
+        transmittalModelName: res.msInfo.transmittalModelName,//传输方式
+        meterModelName: res.msInfo.meterModelName, //水表型号
+        transCommFee: res.msInfo.transCommFee, //远传通讯费
+        commOperatorName: res.msInfo.commOperatorName, //通讯运营商
+        commOperator: res.msInfo.commOperator, //通讯运营商
+        commFeeStart: res.msInfo.commFeeStart, //通讯费开始日期
+        commFeeEnd: res.msInfo.commFeeEnd, //通讯费结束日期
+        meterPatternName: res.msInfo.meterPatternName, //水表型式
+        meterPattern: res.msInfo.meterPattern, //水表型式
+        protocol: res.msInfo.protocol, //下行规约
+        protocolName: res.msInfo.protocolName, //下行规约
+        valveControl: res.msInfo.valveControl, //是否阀控
+        valveControlName: res.msInfo.valveControlName, //是否阀控
+	      // transmissionName: res.msInfo.transmissionName,//是否远传
+        meterSensorName: res.msInfo.meterSensorName, //水表传感器
+        meterSensor: res.msInfo.meterSensor, //水表传感器
+        maxValue: res.msInfo.maxValue, //满码值
+        shelfLife: res.msInfo.shelfLife, //使用期限
+        meterBjms: res.msInfo.meterBjms,// 表井模式
+        meterBjmsName: res.msInfo.meterBjmsName,
+      };
+      let key = "msInfo";
+      this.waterMData[key] = valMeter;
+    },
+
+    getMeterReadData(res) {
+      // 抄表信息
+      this.meterReadData = {
+        bookNo: res.userInfo.bookNo, //册本号
+        sortNo: res.userInfo.sortNo, //排序号
+        lastReadingDate: res.userInfo.lastReadingDate, //抄表日
+        meterReadingCycle: res.userInfo.meterReadingCycle, //抄表周期
+        meterReadingCycleName: res.userInfo.meterReadingCycleName, //抄表周期
+        // lastReadingNum: res.userInfo.lastReadingNum //最后抄码
+        nextMonthid: res.userInfo.nextMonthid,//下次抄表月
+      };
+    },
+
+    getAccountData(res) {
+      let {
+        accountNo, //账户编号
+        payWay, //缴费方式
+        payWayName, //缴费方式
+        accountType, //账户类型
+        accountTypeName, //账户类型
+        openAccountBank, //开户银行
+        openAccountBankName, //开户银行
+        openAccountName, //开户名称
+        bankAccount, //银行账户
+        entrustNo, //托号
+        entrustContract, //托收合同
+        deliverWay, //投递方式
+        deliverWayName, //投递方式
+        deliverAddr, //投递地址
+        emailAddr, //邮箱地址
+        bankSn,//开户行号
+        outNo, //出盘编号
+        accountBalance,
+        id
+      } = res.accountInfo;
+      // 账户信息
+      this.accountData = {
+        accountNo, //账户编号
+        payWay, //缴费方式
+        payWayName, //缴费方式
+        accountType, //账户类型
+        accountTypeName, //账户类型
+        openAccountBank, //开户银行
+        openAccountBankName, //开户银行
+        openAccountName, //开户名称
+        bankAccount, //银行账户
+        entrustNo, //托号
+        entrustContract, //托收合同
+        deliverWay, //投递方式
+        deliverWayName, //投递方式
+        deliverAddr, //投递地址
+        emailAddr, //邮箱地址
+        bankSn,//开户行号
+        outNo, //出盘编号
+        accountBalance,
+        id
+      };
+    },
+
+    getInvoiceData(res) {
+      // 开票信息
+      this.invoiceData = {
+        invoiceType: res.accountInfo.invoiceType, //发票类型
+        invoiceTypeName: res.accountInfo.invoiceTypeName, //发票类型
+        invoiceTitle: res.accountInfo.invoiceTitle, //单位名称
+        invoiceTax: res.accountInfo.invoiceTax, //纳税人识别号
+        invoiceAddr: res.accountInfo.invoiceAddr, //联系地址
+        invoiceLink: res.accountInfo.invoiceLink, //座机号码
+        invoiceBank: res.accountInfo.invoiceBank, //开户银行
+        invoiceBankName: res.accountInfo.invoiceBankName, //开户银行
+        invoiceAccount: res.accountInfo.invoiceAccount, //银行账户
+        vatFlag:res.accountInfo.vatFlag, //增值税标识
+        vatFlagName:res.accountInfo.vatFlagName, //增值税标识
+        mergeInvoicing: res.accountInfo.mergeInvoicing,
+      };
+    },
+    getPriceData(res) {
+      // 价格信息
+      this.priceData = {
+        useWaterTypeName: res.userInfo.useWaterTypeName, //用水类型：
+        useWaterType: res.userInfo.useWaterType, //用水类型：
+        prefStrategyName: res.userInfo.prefStrategyName, //优惠策略：
+        prefStrategyId: res.userInfo.prefStrategyId, //优惠策略id
+        prefCertNo: res.userInfo.prefCertNo, //优惠证件号码：
+        prefBeginDate: res.userInfo.prefBeginDate, //优惠策略开始日期：
+        prefEndDate: res.userInfo.prefEndDate, //优惠策略结束日期：
+        ladderPersonNum: res.userInfo.ladderPersonNum //用水人口：
+      };
+    },
+
+    //树结构数据处理
+    getArr(data) {
+      function abc(arr) {
+        arr.map(i => {
+          if (i.isParent === false) {
+            delete i.children;
+          } else {
+            abc(i.children);
+          }
+        });
+      }
+      abc(data.children);
+      return data;
+    },
+    getFormData(res, type) {
+      // 1 客户编号为空
+      if (res.ctmInfo.ctmNo) {
+        this.setEditType(1);
+        if (!res.accountInfo.accountNo) {
+          this.accountEditType = 0;
+          this.invoiceEditType = 0;
+          let flag = 'init'
+          const defaultCtmNo = res.userTransferInfo && res.userTransferInfo.ctmNo
+          //console.log(defaultCtmNo, res.ctmInfo.ctmNo, res)
+          if(defaultCtmNo && defaultCtmNo.length > 0 && defaultCtmNo !== res.ctmInfo.ctmNo && res.userTransferInfo.processState=='') {
+            flag = ''
+            this.custEditType = 1
+          }
+          this.getaccountCusData(res.ctmInfo.ctmNo, flag);
+        }else{
+          let c = {accountNo:"新开户",id:"12345"}
+          this.$refs.accountInfo.accountlist=[]
+          this.$refs.accountInfo.accountlist.push(res.accountInfo);
+          this.$refs.accountInfo.accountlist.unshift(c);
+          this.accountlist=this.$refs.accountInfo.accountlist
+        }
+        this.disableCertNo = false
+      }
+      if (this.formData.userTransferInfo.processState !== "" && this.formData.userTransferInfo.processState !== undefined) {
+        this.NotDisabled = true;
+        this.setEditType(0);
+        this.approveFlag = 1;
+      }
+      this.getCustData(res);
+      this.getWaterMData(res);
+      this.getWMeterData(res);
+      this.getUserData(res);
+      this.getMeterReadData(res);
+      this.getAccountData(res);
+      this.getInvoiceData(res);
+      this.getPriceData(res);
+      //客户信息
+      this.$refs.custInfo.init(this.custData);
+
+      //用户信息
+      this.$refs.userInfo.init(this.userData);
+
+      //水表信息
+      this.$refs.waterMInfo.init(this.waterMData);
+
+      //抄表信息
+      this.$refs.meterReadInfo.init(this.meterReadData);
+
+      //账户信息
+      this.$refs.accountInfo.init(this.accountData);
+
+      //开票信息
+      this.$refs.invoiceInfo.init(this.invoiceData);
+
+      //价格信息
+      this.$refs.priceInfo.init(this.priceData);
+      if(this.custData.defaultCtmNo && this.custData.defaultCtmNo.length > 0
+          && this.custData.defaultCtmNo !== this.custData.ctmNo
+              && res.userTransferInfo.processState==='') {
+        this.custEditType = 1
+        this.accountEditType = 1
+        this.invoiceEditType = 1
+        this.priceEditType = 1
+      }
+    },
+
+    //根据node查询路径数组
+    getCascaderFullValue(cascader, id) {
+      let cascaderFullValue = [id];
+      this.getParentId(cascaderFullValue, cascader,cascader, id);
+
+      return cascaderFullValue;
+
+    },
+    getParentId(cascaderFullValue, cascader, _cascader, _id) {
+      if (!Array.isArray(cascader)) return;
+
+      for (let cascaderItem of cascader) {
+        if (!Array.isArray(cascaderItem.children)) continue;
+
+        let index = cascaderItem.children.findIndex(item => item.value === _id);
+        if (index >= 0) {
+          cascaderFullValue.unshift(cascaderItem.value);
+
+          if(_cascader.findIndex(item => item.value === cascaderItem.value) < 0) //is original item
+            this.getParentId(cascaderFullValue, _cascader, _cascader,cascaderItem.value);
+        } else {
+          this.getParentId(cascaderFullValue, cascaderItem.children, _cascader,_id);
+        }
+      }
+    },
+    //切换客户时
+    async getaccountCusData(val, accountEditType) {
+      let QuerySameAcPar = {
+        busicode: "QuerySameAccount",
+        data: { ctmNo: val }
+      };
+      let a = await this.$api.fetch({ params: QuerySameAcPar });
+      let b = {};
+      this.ctmAcccountListData=a
+      //清空账户下拉框数据
+      this.$refs.accountInfo.accountlist=[];
+      if (a.length == 1) {
+        b.accountInfo = a[0];
+        this.getAccountData(b);
+        this.getInvoiceData(b);
+        this.accountEditType = 0;
+        this.invoiceEditType = 0;
+        //账户信息
+        this.$refs.accountInfo.init(this.accountData);
+        //开票信息
+        this.$refs.invoiceInfo.init(this.invoiceData);
+        let c = {accountNo:"新开户",id:"12345"}
+        a.unshift(c)
+        this.$refs.accountInfo.accountlist = a;
+        this.accountlist=a;
+      } else if (a.length < 1) {
+        b.accountInfo = {};
+        this.getAccountData(b);
+        this.getInvoiceData(b);
+
+        this.accountEditType = accountEditType === 'init' ? 0 : 1;
+        this.invoiceEditType = accountEditType === 'init' ? 0 : 1;
+        //账户信息
+        this.$refs.accountInfo.init(this.accountData);
+        //开票信息
+        this.$refs.invoiceInfo.init(this.invoiceData);
+      } else if (a.length > 1) {
+        b.accountInfo = a[0];
+        this.getAccountData(b);
+        this.getInvoiceData(b);
+        //账户信息
+        this.$refs.accountInfo.init(this.accountData);
+        //开票信息
+        this.$refs.invoiceInfo.init(this.invoiceData);
+
+        this.accountEditType = 0;
+        this.invoiceEditType = 0;
+        let c = {accountNo:"新开户",id:"12345"}
+        a.unshift(c)
+        this.$refs.accountInfo.accountlist = a;
+        this.accountlist=a;
+        if(this.disableChangeCertNo) {
+          this.custEditType = 0
+          this.accountEditType = 0
+          this.invoiceEditType = 0
+        }
+      }
+    },
+    // 清空账户、开票数据
+    getAccoInvoData(val, type) {
+      if (type == "clear") {
+        this.accountEditType = 1;
+        this.invoiceEditType = 1;
+        val = {
+          // 账户信息
+          accountNo: "新开户", //账户编号
+          payWay: "3", //缴费方式
+          payWayName:"",
+          accountType: "1", //账户类型
+          accountTypeName:"",
+          openAccountBank: "", //开户银行
+          openAccountName: "", //开户名称
+          bankAccount: "", //银行账户
+          entrustNo: "", //托号
+          entrustContract: "", //托收合同
+          deliverWay: "", //投递方式
+          deliverAddr: "", //投递地址
+          bankSn:"",//开户行号
+          outNo:"1", //出盘编号
+          emailAddr: "", //邮箱地址
+          // 开票信息
+          invoiceType: "1", //发票类型
+          invoiceTitle: "", //单位名称
+          invoiceTax: "", //纳税人识别号
+          invoiceAddr: "", //联系地址
+          invoiceLink: "", //座机号码
+          invoiceBank: "", //开户银行
+          invoiceAccount: "" //银行账户
+        };
+        //账户信息
+        this.$refs.accountInfo.init(val);
+        //开票信息
+        this.$refs.invoiceInfo.init(val);
+      } else if (type == "getValue") {
+        this.$refs.accountInfo.accountlist=this.accountlist;
+        this.accountEditType = 0;
+        this.invoiceEditType = 0;
+        //账户信息
+        this.$refs.accountInfo.init(val);
+        //开票信息
+        this.$refs.invoiceInfo.init(val);
+      }
+    },
+    initUserNo() {
+      //用户编号查询
+      let _this = this;
+      if (_this.searchUserNum == "") {
+        _this.$message({
+          message: "用户编号不能为空。",
+          type: "warning"
+        });
+        return;
+      }
+      let data = {
+        userNo: _this.searchUserNum,
+        status: 10,//查询过户
+      };
+      let params = {
+        busicode: "UserSelect",
+        data
+      };
+      this.$api.fetch({ params })
+        .then(res => {
+          this.getFormData(res)
+          //this.disableAccountNo = true
+          this.getDataLength();
+          this.$nextTick(() => {
+            this.$refs.custInfo.adminAreaDataByFullName(res.ctmInfo.clientAddr)
+            this.$refs.userInfo.$refs.dynamicForm.adminAreaDataByFullName(this.formData.userInfo.clientContractAddr)
+          });
+          //console.log(this.disableAccountNo)
+        }).catch(res => {
+          this.getFormData({
+            userInfo: {},
+            accountInfo: {},
+            msInfo: {},
+            ctmInfo: {}
+          })
+          this.disableCertNo = true
+         });
+    },
+
+    getFormbData() {
+          if(this.$refs.userInfo.$refs.dynamicForm.editFormData.reformFlag =='否'){
+               //户表标记判断转换（是/否）  提交表单数据需相应转换数字
+                 this.$refs.userInfo.$refs.dynamicForm.editFormData.reformFlag = 0
+           }else if(this.$refs.userInfo.$refs.dynamicForm.editFormData.reformFlag == '是'){
+                 this.$refs.userInfo.$refs.dynamicForm.editFormData.reformFlag = 1
+                   }
+       for(var i in this.$refs.waterMInfo.$refs.dynamicForm.editFormData){
+         //提交表单-去掉相应水表表单字段
+         for(var j in this.msWaterInfo){
+           if(i == j){
+            delete this.$refs.waterMInfo.$refs.dynamicForm.editFormData[i]
+           }
+         }
+       }
+        // console.log('yy',this.$refs.waterMInfo.$refs.dynamicForm.editFormData)
+      let val = {
+        accountInfo: {
+          ...this.$refs.accountInfo.formData,
+          ...this.$refs.invoiceInfo.formData
+        },
+        ctmInfo: {
+          ...this.$refs.custInfo.formData
+        },
+        userInfo: {
+         ...this.$refs.userInfo.$refs.dynamicForm.editFormData,
+         ...this.$refs.waterMInfo.$refs.dynamicForm.editFormData,
+          // ...this.$refs.userInfo.formData,
+          // ...this.$refs.waterMInfo.formData.userInfo,
+          ...this.$refs.meterReadInfo.formData,
+          ...this.$refs.priceInfo.formData
+        },
+        userTransferInfo: {
+          // ...this.$refs.billInfo.formData,
+          ...this.formData.userTransferInfo,
+        },
+      };
+      /*
+      if (this.billStute == "TransferUserUpdate") {
+        val.userOpenInfo = {
+          ...this.$refs.billInfo.formData,
+          ...this.formData.userTransferInfo,
+        };
+      }*/
+
+      // 树结构
+      // 行政区域 只需要传最后一个值过去useWaterType
+      val.userInfo.adminArea = this.common.handleTreeData(val.userInfo.adminArea)
+      //val.userInfo.prefStrategyId = this.common.handleTreeData(val.userInfo.prefStrategyId)
+      val.userInfo.useWaterType = this.common.handleTreeData(val.userInfo.useWaterType)
+      // 开户银行 数据格式处理
+      val.accountInfo.invoiceBank = this.common.handleTreeData(val.accountInfo.invoiceBank)
+      val.accountInfo.openAccountBank = this.common.handleTreeData(val.accountInfo.openAccountBank)
+      if (val.ctmInfo.ctmNo == "新开户") {
+        val.ctmInfo.ctmNo = "";
+      }
+      delete val.ctmInfo.defaultCtmNo
+      return val;
+    },
+    validateFrom(){
+      let val = 1
+      this.$refs.waterMInfo.getFormData()
+      // this.$refs.waterMInfo.$refs.ruleForm.validate((valid)=>{
+      //   if(!valid){
+      //     val="用户-水表信息必填项未完善"
+      //   }
+      // })
+      //验证抄表必填信息
+      this.$refs.meterReadInfo.$refs.ruleForm.validate((valid)=>{
+        if(!valid){
+          val="用户-抄表信息必填项未完善"
+        }
+      })
+      //验证客户信息
+      this.$refs.custInfo.$refs.ruleForm.validate((valid)=>{
+        if(!valid){
+          val="客户信息必填项未完善"
+        }
+      })
+      //验证发票信息
+      this.$refs.invoiceInfo.$refs.ruleForm.validate((valid)=>{
+        if(!valid){
+          val="开票信息必填项未完善"
+        }
+      })
+      //账户信息验证
+      this.$refs.accountInfo.$refs.ruleForm.validate((valid)=>{
+        if(!valid){
+          val="账户信息必填项未完善"
+        }
+      })
+      //用户信息验证
+      this.$refs.userInfo.getFormData()
+      // this.$refs.userInfo.$refs.ruleForm.validate((valid)=>{
+      //   if(!valid){
+      //     val="用户信息必填项未完善"
+      //   }
+      // })
+      //价格信息验证
+      this.$refs.priceInfo.$refs.ruleForm.validate((valid)=>{
+        if(!valid){
+          val="用户-价格信息信息必填项未完善"
+        }
+      })
+      return val;
+    },
+    // 保存接口
+    submit(type) {
+      let message = this.validateFrom();
+      if(message!==1){
+        this.$notify({
+          title: "验证失败",
+          message: message,
+          type: "error"
+        });
+        return;
+      };
+      let params = {
+        busicode: type,
+        data: this.getFormbData()
+      };
+      this.$api
+        .fetch({
+          params //参数
+        })
+        .then(res => {
+          this.$notify({
+            title: "保存成功",
+            //message: "",
+            type: "success"
+          });
+          if (window.location.href.indexOf("HallBusiness") > 0 || window.location.href.indexOf("PendingTrial") > 0 || window.location.href.indexOf("WaterSideIndex") > 0) {
+            // 流程中心模块触发
+            this.$parent.$parent.closeDialog();
+          } else {
+            // 普通模块触发
+            this.$parent.closeDialog(); // 提交后回调方法
+          }
+        });
+    },
+    getclientAddrConfig(){
+        let params = {
+            busicode: "ConfigList",
+            data: {
+                searchContent: "STRUCTURED_ADDRESS",
+                status: 1
+            }
+        }
+        this.$api
+        .fetch({
+          params
+        })
+        .then(res => {
+            console.log('res', res)
+          if (res.list.length && res.list[0].configValue == "1") {//为1则启用
+            this.$refs.custInfo.isShowclientAddr = true;
+          }else{
+            this.$refs.custInfo.isShowclientAddr = false;
+          }
+        })
+    },
+  }
+};
+</script>
+<style lang="scss" scoped>
+.TransferEdit {
+  height: 100%;
+  overflow-y: auto;
+  span {
+    font-size: 12px;
+  }
+}
+</style>
+
+
+

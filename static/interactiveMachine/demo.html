@@ -1,0 +1,517 @@
+﻿<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />	
+<script type="text/javascript" src ="js/jquery-1.8.3.min.js" ></script>
+<script type="text/javascript" src ="js/jquery.media.js" ></script>
+<script type="text/javascript" src="js/gwq.js" charset="gb2312"></script>
+<script type="text/javascript" src="js/json.js" charset="gb2312"></script>
+<script src="js/jquery.min.js"></script>
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/slider.css">
+</head>	
+<object classid="clsid:96BB8ADA-D348-4414-8892-DC79C8818841" id="GWQ" width="0" height="0"></object>	
+<meta http-equiv="X-UA-Compatible" content="IE=8" > 
+<meta http-equiv="X-UA-Compatible" content="IE=9" >
+<script type="text/javascript">
+function myBrowser(){
+
+    var userAgent = navigator.userAgent; //取得浏览器的userAgent字符串
+	console.log(userAgent);
+    var isOpera = userAgent.indexOf("Opera") > -1;
+    if (isOpera) {
+        return "Opera"
+    } //判断是否Opera浏览器
+    else if (userAgent.indexOf("Firefox") > -1) {
+        return "FF";
+    } //判断是否Firefox浏览器
+	else if (userAgent.indexOf("Edge") > -1) {
+        return "Edge";
+    } 	//判断是否Safari浏览器
+    else if (userAgent.indexOf("Chrome") > -1){
+		return "Chrome";
+		}
+    else if (userAgent.indexOf("Safari") > -1) {
+        return "Safari";
+    }
+	else{
+        return "IE";
+    } //判断是否IE浏览器
+}
+	var webSocket ;
+   if(myBrowser()!="IE"){
+    webSocket = new WebSocket('wss://localhost:1919');
+
+    webSocket.onerror = function(event) {
+	    // alert("连接错误");
+      // onError(event)
+    };
+  
+     webSocket.onopen = function(event) {
+	 //alert("open"+event.data);
+      //console.log(event);
+	  
+     };
+     
+    webSocket.onclose = function(event) {
+			
+	//alert("222");
+	//alert("服务不存在或者被关闭");
+       //onClose(event);
+	   
+    };
+  
+     webSocket.onmessage = function(event) {
+      onMessage(event)
+    };      
+ 
+     
+   }
+
+var FileName="d:\\SignPdfBase64"+SignPDFCount+".pdf"; 
+var SignPDFCount=0;
+	function jiazai() 
+	{
+		$("#pdf_page").attr("src",FileName);
+	}
+    function onMessage(event) 
+	{
+		var ret=event.data;
+		
+		var obj = JSON.parse(ret);
+		if(obj.type==4)//身份证
+		{
+			if(obj.ret==0)
+			{
+				var json = {};
+				json.type=13;
+				json.name=obj.name;
+				json.sex=obj.sex;
+				json.nation=obj.nation;
+				json.addr=obj.addr;
+				json.birth=obj.birth;
+				json.id_num=obj.id_num;
+				json.base64_ID=obj.base64_ID;
+				json.validityTime=obj.validityTime;
+				json.depart=obj.depart;
+				var jsonStr = JSON.stringify(json);
+				OnAfterGWQ_ReadID(obj.ret,jsonStr,'name','sex','nation','birth','addr','id_num');
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}
+		}
+		if(obj.type==5)//人脸识别
+		{
+			if(obj.ret==0)
+			{
+				var json = {};
+				json.type=13;
+				json.name=obj.name;
+				json.sex=obj.sex;
+				json.nation=obj.nation;
+				json.addr=obj.addr;
+				json.birth=obj.birth;
+				json.id_num=obj.id_num;
+				json.base64_ID=obj.base64_ID;
+				json.validityTime=obj.validityTime;
+				json.depart=obj.depart;
+				json.passFlag=obj.passFlag;
+				var jsonStr = JSON.stringify(json);
+				OnAfterGWQ_StartFace(obj.ret,jsonStr,'name','sex','nation','birth','addr','id_num');
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}
+		}
+		if(obj.type==12)//指纹采集
+		{
+			if(obj.ret==0)
+			{
+				OnAfterGWQ_ReadFingerprint(obj.ret);
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}			
+		}
+		
+		if(obj.type==3)//电子签名
+		{
+		
+			if(obj.ret==0)
+			{
+				console.log(obj);
+				 
+			    
+				OnAfterGWQ_StartSign(obj.ret,obj.SignPdfBase64,obj.SignNameBase64,obj.FingerPrintBase64,obj.XML);
+				
+				Base64ToFile(obj.SignPdfBase64,FileName);
+				Base64ToFile(obj.SignNameBase64,"D:\\SignNameBase64.png");
+				Base64ToFile(obj.FingerPrintBase64,"D:\\FingerPrintBase64.png");
+				SignPDFCount++;
+				//alert(FileName);
+				setTimeout("jiazai()",500);
+				
+				//$("#pdf_page").attr("src",FileName);
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}
+			
+		}
+		if(obj.type==11)//启动签名版
+		{
+			if(obj.ret==0)
+			{
+				OnAfterGWQ_SignName(obj.ret);
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}
+		}
+		if(obj.type==13)//文档确认
+		{
+			if(obj.ret==0)
+			{
+				OnAfertGWQ_PDFConfirm(obj.ret);
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}			
+		}
+		if(obj.type==6)//文件上传
+		{
+			OnAfterGWQ_FileUpload(obj.ret);	
+		}
+		if(obj.type==7)//文件删除
+		{
+			OnAfterGWQ_FileDelete(obj.ret);
+		}
+		if(obj.type==8)//文件列表
+		{
+			if(obj.ret==0)
+			{
+				OnAfterGWQ_GetFileList(obj.FileList);
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}						
+		}
+		if(obj.type==14)//启动拍照
+		{
+			if(obj.ret==0)
+			{
+				OnAfterGWQ_GetFrame(obj.ret);
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}						
+		}
+		if(obj.type==24)//录制视频
+		{
+			if(obj.ret==0)
+			{
+				OnAfterGWQ_StartVideoRec(obj.ret,obj.endTime);
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}						
+		}		
+		if(obj.type==25)//http上传
+		{
+			OnAftersUpLoadImageEx3(obj.Respond);		
+		}		
+		if(obj.type==10)//评价
+		{
+			if(obj.ret==0)
+			{
+				OnAfterGWQ_StartEvaluator(obj.ret,obj.EvaluatorLevel);
+			}
+			else{
+				OnAfterCall(obj.ret);
+			}						
+		}	
+		
+		if(obj.type==270)//视频预览
+		{
+			document.getElementById('photo').src ="data:image/jpeg;base64,"+obj.data;
+		}
+		if(obj.type==27)//
+		{
+			OnAfterCall(obj.ret);					
+		}
+		if(obj.type==22)
+		{
+			OnAfterGWQ_StartFormInfo(obj.ret,obj.info);		
+		}
+		if(obj.type==28)//
+		{
+			OnAfterCall(obj.ret);					
+		}
+		if(obj.type==29)//
+		{
+			OnAfterCall(obj.ret);					
+		}			
+		if(obj.type==30)//
+		{
+			OnAfterCall(obj.ret);					
+		}
+		if(obj.type==49)
+		{
+			OnAfterCall(obj.ret);
+		}
+		if(obj.type==58)
+		{
+			if(0==obj.ret){
+				var name=document.getElementById('GWQ_GetFrameFileName').value;
+				Base64ToFile(obj.FrameBase64,name);
+			}
+			OnAfterGWQ_GetFrame(obj.ret);
+		}
+		if(obj.type==59)
+		{
+			OnAfterCall(obj.ret);
+		}
+		if(obj.type==72)
+		{
+			OnAfterCall(obj.ret);
+		}
+		if(obj.type==GWQ_UpdateExType)
+		{
+			if(obj.Value==100)
+				alert("升级成功");
+		}
+	}
+</script>
+<script language="javascript" for="GWQ" event="OnAfterGWQ_GetFileList(FileListBuf)" type="text/javascript"> 
+	OnAfterGWQ_GetFileList(FileListBuf);
+</script>
+
+<script language="javascript" for="GWQ" event="OnAfterGWQ_FileDelete(ErrorCode)" type="text/javascript"> 
+	OnAfterGWQ_FileDelete(ErrorCode);
+</script>
+
+<script language="javascript" for="GWQ" event="OnAfterGWQ_FileUpload(ErrorCode)" type="text/javascript"> 
+	OnAfterGWQ_FileUpload(ErrorCode);
+</script>
+
+<script language="javascript" for="GWQ" event="OnAftersUpLoadImageEx3(Respond)" type="text/javascript"> 
+	OnAftersUpLoadImageEx3(Respond);
+</script>
+<script language="javascript" for="GWQ" event="OnAfterGWQ_StartInfo(ErrorCode)" type="text/javascript"> 
+	OnAfterGWQ_StartInfo(ErrorCode);
+</script>
+<script language="javascript" for="GWQ" event="OnAfterGWQ_StartEvaluator(ErrorCode,EvaluatorLevel)" type="text/javascript"> 
+	OnAfterGWQ_StartEvaluator(ErrorCode,EvaluatorLevel);
+</script>
+<script language="javascript" for="GWQ" event="OnAfterGWQ_StartFormInfo(ErrorCode,info)" type="text/javascript"> 
+	OnAfterGWQ_StartFormInfo(ErrorCode,info);
+</script>
+
+
+<script language="javascript" for="GWQ" event="OnAfterGWQ_StartSign(ErrorCode,SignPdfBase64,SignNameBase64,FingerPrintBase64,XML)" type="text/javascript"> 
+		//alert(SignPdfBase64);
+		//alert(SignNameBase64);
+		//alert(FingerPrintBase64);
+		/*if(0==ErrorCode){
+			GWQ.Base64ToFile(SignPdfBase64,"D:\\SignPdfBase64.pdf");
+			$(window.parent.document).find("#pdf_page").attr("src","D:\\SignPdfBase64.pdf");
+			$(".pdf").media();
+		} */
+		if(0==ErrorCode){
+			var FileName="d:\\SignPdfBase64"+SignPDFCount+".pdf";
+			alert(FileName);
+			GWQ.Base64ToFile(SignPdfBase64,FileName);
+			SignPDFCount++;
+			//$(window.parent.document).find("#pdf_page").attr("src",FileName);
+			//$(".pdf").media();
+			$("#pdf_page").attr("src",FileName);
+			
+		}
+	OnAfterGWQ_StartSign(ErrorCode,SignPdfBase64,SignNameBase64,FingerPrintBase64,XML);
+</script>
+
+
+<script language="javascript" for="GWQ" event="OnAfterGWQ_ReadID(ErrorCode,JsonData)" type="text/javascript"> 
+	OnAfterGWQ_ReadID(ErrorCode,JsonData,'name','sex','nation','birth','addr','id_num');
+</script>
+
+<script language="javascript" for="GWQ" event="OnAfterGWQ_StartFace(ErrorCode,JsonData)" type="text/javascript"> 
+	OnAfterGWQ_StartFace(ErrorCode,JsonData,'name','sex','nation','birth','addr','id_num');
+</script>	
+	
+<script language="javascript" for="GWQ" event="OnAfterGWQ_SignName(ErrorCode)" type="text/javascript"> 
+	OnAfterGWQ_SignName(ErrorCode);
+</script>	
+
+<script language="javascript" for="GWQ" event="OnAfterGWQ_PDFConfirm(ErrorCode)" type="text/javascript"> 
+	OnAfertGWQ_PDFConfirm(ErrorCode);
+</script>
+
+<script language="javascript" for="GWQ" event="OnAfterGWQ_GetFrame(ErrorCode)" type="text/javascript"> 
+	OnAfterGWQ_GetFrame(ErrorCode);
+</script>
+
+<script language="javascript" for="GWQ" event="OnAfterGWQ_FPOperation(ErrorCode,Info)" type="text/javascript"> 
+	OnAfterGWQ_FPOperation(ErrorCode,Info);
+</script>
+<script language="javascript" for="GWQ" event="OnAfterGWQ_ReadFingerprint(ErrorCode)" type="text/javascript"> 
+	OnAfterGWQ_ReadFingerprint(ErrorCode);
+</script>
+<script language="javascript" for="GWQ" event="OnAfterGWQ_StartVideoRec(ErrorCode,endTime)" type="text/javascript"> 
+	OnAfterGWQ_StartVideoRec(ErrorCode,endTime);
+</script>
+<script language="javascript" for="GWQ" event="OnAfterGWQ_UpdateFile(ErrorCode)" type="text/javascript"> 
+	OnAfterGWQ_UpdateFile(ErrorCode);
+</script>
+<script language="javascript" for="GWQ" event="OnAfterGWQ_GetFrameWithIndex(ErrorCode,FrameBase64)" type="text/javascript"> 
+	if(0==ErrorCode){
+		var name=document.getElementById('GWQ_GetFrameFileName').value;
+		Base64ToFile(FrameBase64,name);
+	}
+	OnAfterGWQ_GetFrame(ErrorCode);
+</script>
+<div id="TopImg" align="center">
+	<img id="ceshiimg" src="img\title.jpg" width="100%" height="60px"/>
+</div>
+	
+<div id="top">
+	<h2>模块管理</h2>
+	<div id="topTags" align="right">
+	<ul>
+		<a class="dropdown-toggle" href="http://www.doccamera.com" >公司官网</a>
+	</ul>
+	</div>
+</div>
+
+<div id="main"> 
+	<div id="leftMenu">
+		<ul>
+		<li>人脸和身份证</li>
+		<li>电子签名</li>
+		<li>多媒体</li>
+		<li>评价器</li>
+		<li>基本信息</li>
+		</ul>
+	</div>
+	
+	<div id="content">
+		<div id="welcome" class="content" style="display:block;">
+		  <div align="center" >
+		    <p> </p>
+		    <p><strong>欢迎进入信息交互终端演示系统！</strong></p>
+		    <p> </p>
+		    <p><strong>点击左边模块查看功能！</strong></p>
+		    </div>
+		</div>
+		<div id="c0" align="center" class="content">
+			姓  名：<input id="name" type="text"  size="30"/>
+			</p>
+			性  别：<input id="sex" type="text"  size="30"/>
+			</p>
+			民   族：<input id="nation" type="text"  size="30"/>
+			</p>
+			出生日期：<input id="birth" type="text"  size="30"/>
+			</p>
+			居住地址：<input id="addr" type="text"  size="30"/>
+			</p>
+			身份证号码：<input id="id_num" type="text"  size="30"/>
+			</p>
+			
+			<input type="button"  value="读取身份证"  onClick="DoGWQ_ReadID('name','sex','nation','birth','addr','id_num')">
+			</p>
+			<input type="button"  value="人脸比对"  onClick="DoGWQ_StartFace('name','sex','nation','birth','addr','id_num')">
+			</p>
+			<input type="button"  value="采集指纹"  onClick="DoGWQ_ReadFingerprint(60,'d:\\Fingerprint.png')">
+				<fieldset>
+			<input type="button"  value="关闭"  onClick="GWQ_CancelOperate()">
+			</fieldset>
+		</div>
+		
+		<div id="c1" align="center" class="content">
+			
+			<div class="pdf" >
+			<iframe  src="D:/test.pdf" id ="pdf_page"  name ="pdf_page" style="width:100%;height:400px">
+			</iframe>
+			</div>
+			PDF凭证路径：<input type="text" id="PDFPath" size="30" value="d:\\test.pdf" />
+			
+			XML路径：<input id="XmlPath" type="text" value="D:\\hw.xml" size="50"/>
+			</p>
+			位置：<input id="mylocation" type="text" value="0,1,450,500|1,1,450,500" size="50"/>
+			
+			签名图片：<input id="SignNamePath" type="text" value="D:\\test.png" size="50"/>			
+			</p>
+			<input type="button"  value="电子签名"  onClick="DoGWQ_StartSign(PDFPath.value,XmlPath.value,mylocation.value,'',60)">
+			<input type="button"  value="启动签名版"  onClick="DoGWQ_SignName(XmlPath.value,SignNamePath.value)">
+			<input type="button"  value="文档确认"  onClick="DoGWQ_PDFConfirm(PDFPath.value,60)">
+			</p>
+		</div>
+	
+		<div id="c2" align="center" class="content">
+			<fieldset>
+			文件类型：<select id="SelectDownloadType">
+			<option value="0">广告图片</option>
+			</select>
+			</p>
+			文件完整路径：<input type="file" id="uFileName" size="40" multiple="true" />
+			</p>
+			<input type="button"  value="上传文件"  onClick="GWQ_FileUpload(uFileName.value)">
+			</fieldset>
+			</p>
+			<fieldset>
+			删除文件名：<input id="dFileName" type="text" value="ad.jpg" size="50"/>
+			</p>
+			<input type="button"  value="删除文件"  onClick="GWQ_FileDelete(dFileName.value)">
+			</fieldset>
+			</p>
+			<fieldset>
+			<input type="button"  value="获取文件列表"  onClick="GWQ_GetFileList()">
+			</fieldset>
+			<fieldset>
+			拍照生成文件名：<input id="GWQ_GetFrameFileName" type="text" value="d:\\GWQ_GetFrameWithIndex.jpg" size="50"/>
+			<input type="button"  value="启动拍照"  onClick="GWQ_GetFrameWithIndex(1)">
+			</fieldset>
+			<fieldset>
+			录制视频生成文件名：<input id="DoGWQ_StartVideoRecFileName" type="text" value="d:\\DoGWQ_StartVideoRecFileName.mp4" size="50"/>
+			<input type="button"  value="录制视频"  onClick="DoGWQ_StartVideoRec(DoGWQ_StartVideoRecFileName.value)">
+			</fieldset>
+			<fieldset>
+			<input type="button"  value="获取文件base64"  onClick="GetFileBase64('d:\\test.jpg')">
+			base64：<input  id="Base64Data" size="30" multiple="true" />
+			<input type="button"  value="base64转文件"  onClick="Base64ToFile(Base64Data.value,'d:\\test.jpg')">
+		</div>
+		
+		<div id="c3" align="center" class="content">
+			员工姓名：<input id="eTellerName" type="text" value="张三" size="50"/>
+			</p>
+			员工号：<input id="eTellerNo" type="text" value="10001" size="50"/>
+			</p>
+			员工头像完整路径：<input type="file" id="eTellerPhoto" size="40" multiple="true" />
+			</p>
+			<input type="button"  value="启动评价器"  onClick="GWQ_StartEvaluator(eTellerName.value,eTellerNo.value,eTellerPhoto.value)">
+			</p>
+			<input type="button"  value="表单交互"  onClick="DoGWQ_StartFormInfo('from.html',60,'自定义内容')">
+			</p>
+		</div>
+		
+		<div id="c4" align="center" class="content">
+			<fieldset>
+			<input type="range" id="Volume" value="0" max="15" min="0">
+			<input type="button"  value="设置音量"  onClick="GWQ_SetVolume(Volume.value)">
+			</p>
+			<input type="range" id="Brightness" value="0" max="100" min="0">
+			<input type="button"  value="设置亮度"  onClick="GWQ_SetBrightness(Brightness.value)">
+			</p>
+			更新文件路径：<input id="FileName" type="text" value="d:\\from.html" size="50"/>
+			<input type="button"  value="在线更新"  onClick="GWQ_UpdateEx('d:\\from.html')">
+			</p>
+		
+		</div>
+		
+</div>
+
+<div id="footer">捷宇技术@版权所有</div>
+
+</body>
+	
+</html>

@@ -1,0 +1,58 @@
+{
+  "id": "2471041",
+  "name": "客服营收",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "3169092",
+      "name": "分类",
+      "font_class": "fenlei",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
+      "icon_id": "8453508",
+      "name": "系统",
+      "font_class": "xitong1",
+      "unicode": "e645",
+      "unicode_decimal": 58949
+    },
+    {
+      "icon_id": "10694356",
+      "name": "系统",
+      "font_class": "xitong",
+      "unicode": "e60d",
+      "unicode_decimal": 58893
+    },
+    {
+      "icon_id": "15629978",
+      "name": "报表",
+      "font_class": "baobiao",
+      "unicode": "e77e",
+      "unicode_decimal": 59262
+    },
+    {
+      "icon_id": "16385322",
+      "name": "基础信息",
+      "font_class": "jichuxinxi",
+      "unicode": "e688",
+      "unicode_decimal": 59016
+    },
+    {
+      "icon_id": "20147518",
+      "name": "查询",
+      "font_class": "chaxun",
+      "unicode": "e664",
+      "unicode_decimal": 58980
+    },
+    {
+      "icon_id": "20168772",
+      "name": "shouye-02",
+      "font_class": "iconshouye",
+      "unicode": "e641",
+      "unicode_decimal": 58945
+    }
+  ]
+}
